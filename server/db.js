@@ -25,7 +25,8 @@ const COLLECTIONS = [
   'notifications',
   'email_outbox',
   'emails',
-  'audit_logs'
+  'audit_logs',
+  'daily_penalties'
 ];
 
 /**

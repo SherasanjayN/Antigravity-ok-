@@ -17,7 +17,9 @@ import {
   Send,
   History,
   Calculator,
-  FileText
+  FileText,
+  Calendar,
+  Award
 } from 'lucide-react';
 import { api } from '../../services/api';
 import GroupChat from '../GroupChat';
@@ -422,6 +424,185 @@ export default function MemberDashboard({ currentUser }) {
                 </button>
               )}
             </div>
+
+            {/* REPAYMENT SCORE & TIMELY PAYMENT BADGE BANNER */}
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '12px',
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.5rem',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '12px',
+                  backgroundColor: (currentUser?.repayment_score ?? 100) >= 80 ? '#ecfdf5' : (currentUser?.repayment_score ?? 100) >= 50 ? '#fffbeb' : '#fef2f2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: `2px solid ${(currentUser?.repayment_score ?? 100) >= 80 ? '#10b981' : (currentUser?.repayment_score ?? 100) >= 50 ? '#f59e0b' : '#ef4444'}`
+                }}>
+                  <Award size={28} color={(currentUser?.repayment_score ?? 100) >= 80 ? '#059669' : (currentUser?.repayment_score ?? 100) >= 50 ? '#d97706' : '#dc2626'} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    {lang === 'ta' ? 'தவணை ஒழுங்கு ஸ்கோர் (Repayment Score)' : 'Repayment Reliability Score'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginTop: '2px' }}>
+                    <span style={{
+                      fontSize: '1.85rem',
+                      fontWeight: 900,
+                      color: (currentUser?.repayment_score ?? 100) >= 80 ? '#047857' : (currentUser?.repayment_score ?? 100) >= 50 ? '#b45309' : '#dc2626'
+                    }}>
+                      {currentUser?.repayment_score !== undefined ? currentUser.repayment_score : 100}
+                    </span>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-muted)' }}>/ 100</span>
+                    <span style={{
+                      marginLeft: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      backgroundColor: (currentUser?.repayment_score ?? 100) >= 80 ? '#dcfce7' : (currentUser?.repayment_score ?? 100) >= 50 ? '#fef3c7' : '#fee2e2',
+                      color: (currentUser?.repayment_score ?? 100) >= 80 ? '#15803d' : (currentUser?.repayment_score ?? 100) >= 50 ? '#92400e' : '#991b1b'
+                    }}>
+                      {(currentUser?.repayment_score ?? 100) >= 80 ? (lang === 'ta' ? 'சிறந்த தகுதி' : 'Excellent Track Record') : (currentUser?.repayment_score ?? 100) >= 50 ? (lang === 'ta' ? 'நடுத்தரம்' : 'Fair Standing') : (lang === 'ta' ? 'கவனம் தேவை' : 'Attention Needed')}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {lang === 'ta'
+                      ? 'தாமதமில்லாமல் தவணை செலுத்துங்கள். ஒவ்வொரு தாமதமான நாளுக்கும் ₹50 அபராதம் மற்றும் -1 ஸ்கோர் குறைக்கப்படும்.'
+                      : 'Pay on-time to maintain your 100 score. Late repayments incur ₹50/day penalty and -1 score reduction.'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1.25rem', borderLeft: '1px solid #f1f5f9', paddingLeft: '1.25rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                    {lang === 'ta' ? 'மொத்த தாமத நாட்கள்' : 'Total Overdue Days'}
+                  </span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: (currentUser?.total_overdue_days || 0) > 0 ? '#dc2626' : '#047857' }}>
+                    {currentUser?.total_overdue_days || 0} {lang === 'ta' ? 'நாட்கள்' : 'days'}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                    {lang === 'ta' ? 'மொத்த அபராதம்' : 'Total Incurred Penalty'}
+                  </span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 800, color: (currentUser?.total_penalties_incurred || 0) > 0 ? '#dc2626' : '#047857' }}>
+                    ₹{currentUser?.total_penalties_incurred || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* SEPARATE WEEKLY AND MONTHLY LOAN DASHBOARDS (Section 8) */}
+            {effectiveActiveLoans.length > 0 && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Calendar size={18} color="#047857" />
+                  <span>{lang === 'ta' ? 'செயலில் உள்ள கடன்கள் தவணை அட்டவணை மேலோட்டம்' : 'Active Loans Repayment Schedules'}</span>
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+                  {effectiveActiveLoans.map(loan => {
+                    const isWeekly = (loan.repayment_frequency || 'WEEKLY').toUpperCase() === 'WEEKLY';
+                    const freqLabel = isWeekly ? (lang === 'ta' ? 'வாரக் கடன் (Weekly)' : 'Weekly Loan') : (lang === 'ta' ? 'மாதக் கடன் (Monthly)' : 'Monthly Loan');
+                    const freqColor = isWeekly ? '#047857' : '#1d4ed8';
+                    const freqBg = isWeekly ? '#ecfdf5' : '#eff6ff';
+                    const freqBorder = isWeekly ? '#a7f3d0' : '#bfdbfe';
+
+                    return (
+                      <div key={loan.id} style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '10px',
+                        padding: '1.25rem',
+                        border: `1.5px solid ${freqBorder}`,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                          <div>
+                            <span style={{
+                              fontSize: '0.75rem', fontWeight: 800, padding: '3px 8px', borderRadius: '4px',
+                              backgroundColor: freqBg, color: freqColor, textTransform: 'uppercase'
+                            }}>
+                              {freqLabel}
+                            </span>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              {loan.loan_account_number || loan.id.slice(0, 8)}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                            ₹{loan.sanctioned_amount || loan.amount}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', fontSize: '0.82rem', marginBottom: '0.85rem' }}>
+                          <div style={{ backgroundColor: '#f8fafc', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Repayment Frequency</span>
+                            <strong style={{ color: freqColor }}>{loan.repayment_frequency || 'WEEKLY'}</strong>
+                          </div>
+                          <div style={{ backgroundColor: '#f8fafc', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Installment</span>
+                            <strong style={{ color: '#0f172a' }}>₹{loan.installment_amount || (loan.repayment_schedule?.[0]?.scheduled_amount) || Math.round(loan.amount / (loan.tenure_value || 10))}</strong>
+                          </div>
+                          <div style={{ backgroundColor: '#f8fafc', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Next Due Date</span>
+                            <strong style={{ color: loan.overdue_days > 0 ? '#dc2626' : '#334155' }}>
+                              {loan.next_due_date || loan.first_due_date || 'N/A'}
+                            </strong>
+                          </div>
+                          <div style={{ backgroundColor: (loan.overdue_days || 0) > 0 ? '#fef2f2' : '#f8fafc', padding: '0.5rem 0.65rem', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '0.72rem', color: (loan.overdue_days || 0) > 0 ? '#991b1b' : 'var(--text-muted)', display: 'block' }}>Overdue Days</span>
+                            <strong style={{ color: (loan.overdue_days || 0) > 0 ? '#dc2626' : '#047857' }}>
+                              {loan.overdue_days || 0} days
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9' }}>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Daily Late Penalty</span>
+                            <strong style={{ fontSize: '0.95rem', color: (loan.penalty_amount || 0) > 0 ? '#dc2626' : '#047857' }}>
+                              ₹{loan.penalty_amount || 0}
+                            </strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLedgerLoanId(loan.id)}
+                            style={{
+                              padding: '0.4rem 0.85rem',
+                              borderRadius: '6px',
+                              border: '1px solid #047857',
+                              backgroundColor: '#ecfdf5',
+                              color: '#065f46',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <FileText size={14} />
+                            <span>{t('view_ledger')}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
               {/* Group Info Card */}

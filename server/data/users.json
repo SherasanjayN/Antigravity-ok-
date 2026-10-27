@@ -38,7 +38,10 @@
     "role": "USER",
     "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
     "created_at": "2026-10-27T10:24:11.205Z",
-    "approved_at": "2026-10-27T10:24:22.013Z"
+    "approved_at": "2026-10-27T10:24:22.013Z",
+    "repayment_score": 100,
+    "total_overdue_days": 0,
+    "total_penalties_incurred": 0
   },
   {
     "id": "db449fdc-9bb7-4dc7-b63a-a0dcd8f079a6",
@@ -52,7 +55,10 @@
     "role": "USER",
     "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
     "created_at": "2026-10-27T12:55:15.612Z",
-    "approved_at": "2026-10-27T12:55:55.962Z"
+    "approved_at": "2026-10-27T12:55:55.962Z",
+    "repayment_score": 100,
+    "total_overdue_days": 0,
+    "total_penalties_incurred": 0
   },
   {
     "id": "usr_ga_1",
@@ -78,7 +84,10 @@
     "status": "APPROVED",
     "role": "USER",
     "group_id": "grp_myla_01",
-    "created_at": "2026-10-23T06:42:58.707Z"
+    "created_at": "2026-10-23T06:42:58.707Z",
+    "repayment_score": 100,
+    "total_overdue_days": 0,
+    "total_penalties_incurred": 0
   },
   {
     "id": "usr_ga_2",
@@ -118,6 +127,9 @@
     "role": "USER",
     "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
     "created_at": "2026-10-27T19:58:33.008Z",
-    "approved_at": "2026-10-27T19:59:31.165Z"
+    "approved_at": "2026-10-27T19:59:31.165Z",
+    "repayment_score": 100,
+    "total_overdue_days": 0,
+    "total_penalties_incurred": 0
   }
 ]

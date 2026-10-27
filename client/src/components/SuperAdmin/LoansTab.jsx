@@ -267,7 +267,18 @@ export default function LoansTab({ onActionComplete }) {
                 {filteredLoans.map(loan => (
                   <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</span>
+                        {loan.member_repayment_score !== undefined && (
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px',
+                            backgroundColor: loan.member_repayment_score >= 80 ? '#dcfce7' : loan.member_repayment_score >= 50 ? '#fef3c7' : '#fee2e2',
+                            color: loan.member_repayment_score >= 80 ? '#15803d' : loan.member_repayment_score >= 50 ? '#92400e' : '#dc2626'
+                          }} title="Member Repayment Score">
+                            {loan.member_repayment_score} pts
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600 }}>{loan.group_name}</div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{loan.member_email}</div>
                     </td>

@@ -276,6 +276,25 @@ export default function SheAiAssistant({ currentUser }) {
       }
     }
 
+    // Repayment Score & Privacy Inquiry
+    if (q.includes('score') || q.includes('ஸ்கோர்') || q.includes('மதிப்பெண்') || q.includes('credit score') || q.includes('penalty')) {
+      if (isTa) {
+        return `📊 **தவணை ஒழுங்கு ஸ்கோர் & அபராதம் (Repayment Score & Policy):**
+
+1. **ஸ்கோர் விவரம்:** ஒவ்வொரு உறுப்பினரின் ஆரம்ப ஸ்கோர் **100/100**. தவணையை உரிய தேதியில் செலுத்தினால் ஸ்கோர் குறையாது!
+2. **தாமதக் கட்டணம் & ஸ்கோர் இழப்பு:** தவணை தவறிய ஒவ்வொரு நாளுக்கும் **₹50 தினசரி அபராதம்** மற்றும் **-1 ஸ்கோர்** குறைக்கப்படும்.
+3. **பாதுகாப்பு & தனிஉரிமை:** உங்கள் தனிப்பட்ட ஸ்கோரை நீங்கள் மற்றும் சூப்பர் அட்மின் மட்டுமே பார்க்க முடியும். பிற உறுப்பினர்களின் தனிப்பட்ட ஸ்கோரை AI அல்லது பிறர் பார்க்க இயலாது.
+4. **ஸ்கோர் மீட்க:** நிலுவைத் தொகையை முழுமையாக செலுத்துவதன் மூலம் கூடுதல் அபராதத்தைத் தவிர்க்கலாம். ஸ்கோர் எப்போதும் 0-க்குக் கீழ் குறையாது!`;
+      } else {
+        return `📊 **Repayment Score & Overdue Penalty Rules:**
+
+1. **Initial Score:** Every member starts with a perfect **100/100** repayment score. On-time repayments preserve your score.
+2. **Overdue Penalty & Score Impact:** For each overdue day, a daily penalty of **₹50/day** applies and your score reduces by **1 point/day**.
+3. **Strict Privacy:** Your repayment score is private and only visible to you and the Super Admin. SHE AI strictly protects member privacy and never discloses any member's score to others.
+4. **Floor Limit:** Scores never go below 0 (zero). Paying overdue installments immediately stops future daily penalties!`;
+      }
+    }
+
     // 5. Repayment Tracking & Ledger Inquiries
     if (q.includes('repay') || q.includes('ledger') || q.includes('ரசீது') || q.includes('தவணை செலுத்துவது') || q.includes('கட்டிய தொகை') || q.includes('மீதி') || q.includes('balance') || q.includes('due')) {
       if (isTa) {

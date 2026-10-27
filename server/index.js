@@ -18,7 +18,10 @@ const {
 const {
   calculateEmi,
   generateRepaymentSchedule,
-  allocateRepayment
+  allocateRepayment,
+  processDailyRepaymentAndScore,
+  DAILY_PENALTY_RATE,
+  DAILY_SCORE_PENALTY
 } = require('./loanCalculations');
 
 const app = express();
@@ -50,6 +53,47 @@ function createNotification(userId, type, title, message, relatedLoanId = null) 
     console.error('Error creating notification:', err);
   }
 }
+
+// ----------------- DAILY REPAYMENT & SCORE CHECK SERVICE -----------------
+function runDailyRepaymentCheck(customDate = null) {
+  try {
+    const loans = readCollection('loans');
+    const schedules = readCollection('repayment_schedules');
+    const users = readCollection('users');
+    const dailyPenalties = readCollection('daily_penalties');
+    const notifications = readCollection('notifications');
+
+    const result = processDailyRepaymentAndScore({
+      loans,
+      schedules,
+      users,
+      dailyPenalties,
+      notifications,
+      currentDate: customDate,
+      notifyCallback: ({ userId, loanId, repaymentId, overdueDays, pendingAmount, penaltyAmount, totalOutstanding }) => {
+        // Overdue Notification bilingual as per requirement
+        const title = `⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு`;
+        const messageEn = `Your ₹${pendingAmount} repayment is ${overdueDays} days overdue. Pending Amount: ₹${pendingAmount}, Late Penalty: ₹${penaltyAmount}, Total Outstanding: ₹${totalOutstanding}.`;
+        const messageTa = `உங்கள் ₹${pendingAmount} repayment ${overdueDays} நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹${pendingAmount}, Late Penalty: ₹${penaltyAmount}, Total Outstanding: ₹${totalOutstanding}.`;
+        const fullMessage = `${messageEn}\n\n${messageTa}`;
+
+        createNotification(userId, 'REPAYMENT_OVERDUE', title, fullMessage, loanId);
+      }
+    });
+
+    writeCollection('loans', loans);
+    writeCollection('repayment_schedules', schedules);
+    writeCollection('users', users);
+    writeCollection('daily_penalties', dailyPenalties);
+
+    console.log(`[DAILY CHECK] Completed for ${result.todayStr}. New daily penalties: ${result.penaltiesCreatedCount}, Total tracked: ${result.totalPenaltiesTracked}`);
+    return result;
+  } catch (err) {
+    console.error('[DAILY CHECK] Error running daily repayment check:', err);
+    return null;
+  }
+}
+
 
 function recordAudit(userId, userName, role, action, details) {
   try {
@@ -714,6 +758,7 @@ app.get('/api/admin/loans', authenticateToken, requireRole('SUPER_ADMIN'), (req,
         member_name: member ? member.name : 'Unknown',
         member_email: member ? member.email : 'Unknown',
         member_phone: member ? member.phone : 'Unknown',
+        member_repayment_score: member ? (member.repayment_score !== undefined ? member.repayment_score : 100) : 100,
         group_name: group ? group.group_name : 'Unknown',
         user_active_loans_count: userActiveLoans.length
       };
@@ -757,7 +802,7 @@ app.post('/api/admin/loans/:id/sanction', authenticateToken, requireRole('SUPER_
     const freq = loan.repayment_frequency || 'WEEKLY';
     const tenure = loan.tenure_value || (freq === 'WEEKLY' ? 10 : 6);
 
-    const scheduleData = generateRepaymentSchedule(principal, rate, freq, tenure, loan.preferred_first_due_date || new Date().toISOString());
+    const scheduleData = generateRepaymentSchedule(principal, rate, freq, tenure, loan.preferred_first_due_date || new Date().toISOString(), loan.id);
 
     loan.loan_account_number = loanAccountNumber;
     loan.status = 'SANCTIONED';
@@ -1352,7 +1397,10 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
         area: currentUser.area,
         district: currentUser.district,
         role: currentUser.role,
-        status: currentUser.status
+        status: currentUser.status,
+        repayment_score: currentUser.repayment_score !== undefined ? currentUser.repayment_score : 100,
+        total_overdue_days: currentUser.total_overdue_days || 0,
+        total_penalties_incurred: currentUser.total_penalties_incurred || 0
       },
       group,
       groupAdmin,
@@ -1913,9 +1961,20 @@ app.get('/api/loans/:id/ledger', authenticateToken, (req, res) => {
     const member = users.find(u => u.id === loan.user_id);
     const loanRepayments = repayments.filter(r => r.loan_id === loan.id);
 
+    // Score visibility: Only visible to Super Admin and the particular loan owner
+    const canViewScore = req.user.role === 'SUPER_ADMIN' || req.user.id === loan.user_id;
+    const memberScore = (canViewScore && member)
+      ? (member.repayment_score !== undefined ? member.repayment_score : 100)
+      : null;
+
     res.json({
       loan,
-      member: member ? { name: member.name, email: member.email, phone: member.phone } : null,
+      member: member ? {
+        name: member.name,
+        email: member.email,
+        phone: member.phone,
+        repayment_score: memberScore
+      } : null,
       repayments: loanRepayments,
       schedule: loan.repayment_schedule || []
     });
@@ -2075,9 +2134,36 @@ app.use((req, res, next) => {
   });
 });
 
+// ----------------- DAILY REPAYMENT & SCORE CHECK API -----------------
+app.post('/api/admin/run-daily-check', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { date } = req.body;
+    const result = runDailyRepaymentCheck(date || null);
+    res.json({
+      success: true,
+      result
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to run daily repayment check.' });
+  }
+});
+
 // ----------------- SERVER START -----------------
 app.listen(PORT, () => {
   console.log(`[SERVER] Magalir Kuzhu Portal Combined Server running on port ${PORT}`);
   console.log(`[SERVER] Serving API on /api and Frontend on http://localhost:${PORT}`);
+
+  // Run daily check on server boot
+  setTimeout(() => {
+    console.log('[SCHEDULER] Running initial daily repayment and score check...');
+    runDailyRepaymentCheck();
+  }, 3000);
+
+  // Set recurring daily interval (24 hours: 24 * 60 * 60 * 1000 ms)
+  setInterval(() => {
+    console.log('[SCHEDULER] Running daily scheduled repayment check...');
+    runDailyRepaymentCheck();
+  }, 24 * 60 * 60 * 1000);
 });
+
 

@@ -165,10 +165,22 @@ export default function RepaymentLedgerModal({ loanId, currentUser, onClose, onP
           </div>
           <div style={{ backgroundColor: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>{t('next_due_date')}</span>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: '#334155' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 700, color: (loan?.overdue_days || 0) > 0 ? '#dc2626' : '#334155' }}>
               {isCompleted ? t('fully_repaid') : (loan?.next_due_date || 'N/A')}
             </span>
           </div>
+          {(loan?.penalty_amount || 0) > 0 && (
+            <div style={{ backgroundColor: '#fef2f2', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #fecaca' }}>
+              <span style={{ fontSize: '0.75rem', color: '#991b1b', display: 'block' }}>Late Penalty (₹50/day)</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#dc2626' }}>₹{loan.penalty_amount}</span>
+            </div>
+          )}
+          {member?.repayment_score !== null && member?.repayment_score !== undefined && (
+            <div style={{ backgroundColor: '#ecfdf5', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+              <span style={{ fontSize: '0.75rem', color: '#065f46', display: 'block' }}>Repayment Score</span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#047857' }}>{member.repayment_score} / 100</span>
+            </div>
+          )}
         </div>
 
         {/* Tab Switcher */}
@@ -253,28 +265,38 @@ export default function RepaymentLedgerModal({ loanId, currentUser, onClose, onP
                   <th style={{ padding: '8px 12px' }}>{t('principal_portion')}</th>
                   <th style={{ padding: '8px 12px' }}>{t('interest_portion')}</th>
                   <th style={{ padding: '8px 12px' }}>Paid</th>
+                  <th style={{ padding: '8px 12px' }}>Overdue</th>
+                  <th style={{ padding: '8px 12px' }}>Penalty (₹50/d)</th>
                   <th style={{ padding: '8px 12px' }}>{t('status_label')}</th>
                 </tr>
               </thead>
               <tbody>
                 {schedule.map(row => {
-                  const paidTotal = (row.principal_paid || 0) + (row.interest_paid || 0);
+                  const paidTotal = row.paidAmount !== undefined ? row.paidAmount : ((row.principal_paid || 0) + (row.interest_paid || 0));
                   const isPaid = row.status === 'PAID';
+                  const overdueDays = row.overdueDays || 0;
+                  const penaltyAmount = row.penaltyAmount || 0;
                   return (
-                    <tr key={row.installment_number} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isPaid ? '#f0fdf4' : 'transparent' }}>
+                    <tr key={row.installment_number || row.repaymentId} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isPaid ? '#f0fdf4' : overdueDays > 0 ? '#fff1f2' : 'transparent' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 600 }}>#{row.installment_number}</td>
                       <td style={{ padding: '8px 12px' }}>{row.due_date}</td>
-                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>₹{row.scheduled_amount}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 600 }}>₹{row.expectedAmount || row.scheduled_amount}</td>
                       <td style={{ padding: '8px 12px' }}>₹{row.principal_due}</td>
                       <td style={{ padding: '8px 12px', color: '#b45309' }}>₹{row.interest_due}</td>
                       <td style={{ padding: '8px 12px', fontWeight: 700, color: paidTotal > 0 ? '#15803d' : '#64748b' }}>
                         ₹{paidTotal}
                       </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: overdueDays > 0 ? '#dc2626' : '#64748b' }}>
+                        {overdueDays > 0 ? `${overdueDays} days` : '0'}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: penaltyAmount > 0 ? '#dc2626' : '#64748b' }}>
+                        {penaltyAmount > 0 ? `₹${penaltyAmount}` : '₹0'}
+                      </td>
                       <td style={{ padding: '8px 12px' }}>
                         <span style={{
                           fontSize: '0.72rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px',
-                          backgroundColor: isPaid ? '#dcfce7' : row.status === 'PARTIALLY_PAID' ? '#fef3c7' : '#f1f5f9',
-                          color: isPaid ? '#15803d' : row.status === 'PARTIALLY_PAID' ? '#92400e' : '#475569'
+                          backgroundColor: isPaid ? '#dcfce7' : overdueDays > 0 ? '#fee2e2' : row.status === 'PARTIALLY_PAID' ? '#fef3c7' : '#f1f5f9',
+                          color: isPaid ? '#15803d' : overdueDays > 0 ? '#dc2626' : row.status === 'PARTIALLY_PAID' ? '#92400e' : '#475569'
                         }}>
                           {row.status}
                         </span>

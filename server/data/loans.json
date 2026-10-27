@@ -91,5 +91,165 @@
       }
     ],
     "sanctioned_at": "2026-10-27T10:42:59.025Z"
+  },
+  {
+    "id": "loan_1793083406397_sw6f",
+    "user_id": "ed4ef7e0-ce78-4c39-82a9-73ef1d5d27a0",
+    "user_name": "Lakshmi Raman",
+    "user_phone": "9840998877",
+    "user_email": "priya.mohan@gmail.com",
+    "group_id": "grp_myla_01",
+    "group_name": "Mylapore Mahasakthi Kuzhu",
+    "amount": 7500,
+    "payment_mode": "UPI",
+    "upi_email": "priya.mohan@gmail.com",
+    "purpose": "Procurement of organic sewing thread & fabrics",
+    "status": "APPROVED",
+    "requested_at": "2026-10-27T06:43:26.392Z",
+    "status_history": [
+      {
+        "status": "PENDING_GROUP_ADMIN",
+        "updated_at": "2026-10-27T06:43:26.392Z",
+        "updated_by_name": "Priya Mohan",
+        "updated_by_role": "USER",
+        "note": "Loan requested for ₹7,500 via UPI (UPI ID verified: priya.mohan@gmail.com) - Purpose: Procurement of organic sewing thread & fabrics"
+      },
+      {
+        "status": "PENDING_SUPER_ADMIN",
+        "updated_at": "2026-10-27T06:43:26.489Z",
+        "updated_by_name": "Kavitha Ramasamy",
+        "updated_by_role": "GROUP_ADMIN",
+        "note": "Verified in weekly meeting. Forwarded with recommendation."
+      },
+      {
+        "status": "APPROVED",
+        "updated_at": "2026-10-27T06:43:26.494Z",
+        "updated_by_name": "Sanjay N (Super Admin)",
+        "updated_by_role": "SUPER_ADMIN",
+        "note": "Sanction granted under Magalir Kuzhu credit facility."
+      }
+    ],
+    "repayment_frequency": "WEEKLY",
+    "tenure_period": 10,
+    "total_paid": 1500,
+    "remaining_balance": 6000,
+    "next_due_date": "2026-11-07",
+    "sanction_date": "2026-10-27T06:43:26.494Z",
+    "installments": [
+      {
+        "id": "inst_1",
+        "installment_number": 1,
+        "due_date": "2026-10-24",
+        "due_amount": 750,
+        "paid_amount": 750,
+        "paid_date": "2026-10-24T10:30:00.000Z",
+        "payment_mode": "CASH",
+        "status": "PAID",
+        "recorded_by_name": "Kavitha Ramasamy",
+        "transaction_ref": "TXN_782011",
+        "note": "Collected during Saturday group meeting"
+      },
+      {
+        "id": "inst_2",
+        "installment_number": 2,
+        "due_date": "2026-10-31",
+        "due_amount": 750,
+        "paid_amount": 750,
+        "paid_date": "2026-10-31T11:00:00.000Z",
+        "payment_mode": "UPI",
+        "status": "PAID",
+        "recorded_by_name": "Kavitha Ramasamy",
+        "transaction_ref": "TXN_991823",
+        "note": "Direct UPI transfer verified"
+      },
+      {
+        "id": "inst_3",
+        "installment_number": 3,
+        "due_date": "2026-11-07",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_4",
+        "installment_number": 4,
+        "due_date": "2026-11-14",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_5",
+        "installment_number": 5,
+        "due_date": "2026-11-21",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_6",
+        "installment_number": 6,
+        "due_date": "2026-11-28",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_7",
+        "installment_number": 7,
+        "due_date": "2026-12-05",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_8",
+        "installment_number": 8,
+        "due_date": "2026-12-12",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_9",
+        "installment_number": 9,
+        "due_date": "2026-12-19",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      },
+      {
+        "id": "inst_10",
+        "installment_number": 10,
+        "due_date": "2026-12-26",
+        "due_amount": 750,
+        "paid_amount": 0,
+        "status": "PENDING"
+      }
+    ]
+  },
+  {
+    "id": "loan_sample_1",
+    "user_id": "usr_mem_1",
+    "user_name": "Lakshmi Priya",
+    "user_phone": "9840223344",
+    "user_email": "lakshmi.priya@gmail.com",
+    "group_id": "grp_myla_01",
+    "group_name": "Mylapore Mahasakthi Kuzhu",
+    "amount": 8000,
+    "payment_mode": "UPI",
+    "upi_email": "lakshmi.priya@gmail.com",
+    "purpose": "Organic vegetables cart expansion",
+    "status": "PENDING_GROUP_ADMIN",
+    "requested_at": "2026-10-27T02:42:58.707Z",
+    "status_history": [
+      {
+        "status": "PENDING_GROUP_ADMIN",
+        "updated_at": "2026-10-27T02:42:58.707Z",
+        "updated_by_name": "Lakshmi Priya",
+        "updated_by_role": "USER",
+        "note": "Loan request submitted with verified UPI email."
+      }
+    ]
   }
 ]
