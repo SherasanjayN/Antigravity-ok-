@@ -33,13 +33,13 @@ async function seedData() {
       group_name: 'Mylapore Mahasakthi Kuzhu',
       area: 'Mylapore',
       district: 'Chennai',
-      admin: { name: 'Kavitha Murugan', email: 'kavitha.admin@magalir.org', phone: '9840112233' },
+      admin: { name: 'Kavitha Murugan', email: 'kavitha.admin@mail.com', phone: '9840112233' },
       members: [
-        { name: 'Lakshmi Raman', email: 'lakshmi.m1@magalir.org', phone: '9840998811', area: 'Mylapore', scenario: '4TH_LOAN_QUALIFIED' },
-        { name: 'Priya Sundaram', email: 'priya.m2@magalir.org', phone: '9840998812', area: 'Mandaveli', scenario: 'OVERDUE_WITH_FINE' },
-        { name: 'Revathi Natarajan', email: 'revathi.m3@magalir.org', phone: '9840998813', area: 'Mylapore', scenario: 'ACTIVE_NORMAL' },
-        { name: 'Geetha Balan', email: 'geetha.m4@magalir.org', phone: '9840998814', area: 'Alwarpet', scenario: '4TH_LOAN_LOW_SCORE' },
-        { name: 'Shanthi Saravanan', email: 'shanthi.m5@magalir.org', phone: '9840998815', area: 'Mylapore', scenario: 'COMPLETED_MAX_4' }
+        { name: 'Lakshmi Raman', email: 'lakshmi.m1@mail.com', phone: '9840998811', area: 'Mylapore', scenario: '4TH_LOAN_QUALIFIED' },
+        { name: 'Priya Sundaram', email: 'priya.m2@mail.com', phone: '9840998812', area: 'Mandaveli', scenario: 'OVERDUE_WITH_FINE' },
+        { name: 'Revathi Natarajan', email: 'revathi.m3@mail.com', phone: '9840998813', area: 'Mylapore', scenario: 'ACTIVE_NORMAL' },
+        { name: 'Geetha Balan', email: 'geetha.m4@mail.com', phone: '9840998814', area: 'Alwarpet', scenario: '4TH_LOAN_LOW_SCORE' },
+        { name: 'Shanthi Saravanan', email: 'shanthi.m5@mail.com', phone: '9840998815', area: 'Mylapore', scenario: 'COMPLETED_MAX_4' }
       ]
     },
     {
@@ -47,13 +47,13 @@ async function seedData() {
       group_name: 'Marutham Magalir Kuzhu',
       area: 'Gandhipuram',
       district: 'Coimbatore',
-      admin: { name: 'Selvi Karuppasamy', email: 'selvi.admin@magalir.org', phone: '9842113344' },
+      admin: { name: 'Selvi Karuppasamy', email: 'selvi.admin@mail.com', phone: '9842113344' },
       members: [
-        { name: 'Anitha Velusamy', email: 'anitha.m1@magalir.org', phone: '9842998821', area: 'Gandhipuram', scenario: 'ACTIVE_NORMAL' },
-        { name: 'Deepa Senthil', email: 'deepa.m2@magalir.org', phone: '9842998822', area: 'R.S. Puram', scenario: 'OVERDUE_WITH_FINE' },
-        { name: 'Saranya Mohan', email: 'saranya.m3@magalir.org', phone: '9842998823', area: 'Peelamedu', scenario: '4TH_LOAN_QUALIFIED' },
-        { name: 'Bhuvaneswari Palani', email: 'bhuvi.m4@magalir.org', phone: '9842998824', area: 'Saibaba Colony', scenario: 'CLEARED_FIRST_LOAN' },
-        { name: 'Radha Kannan', email: 'radha.m5@magalir.org', phone: '9842998825', area: 'Gandhipuram', scenario: 'COMPLETED_MAX_4' }
+        { name: 'Anitha Velusamy', email: 'anitha.m1@mail.com', phone: '9842998821', area: 'Gandhipuram', scenario: 'ACTIVE_NORMAL' },
+        { name: 'Deepa Senthil', email: 'deepa.m2@mail.com', phone: '9842998822', area: 'R.S. Puram', scenario: 'OVERDUE_WITH_FINE' },
+        { name: 'Saranya Mohan', email: 'saranya.m3@mail.com', phone: '9842998823', area: 'Peelamedu', scenario: '4TH_LOAN_QUALIFIED' },
+        { name: 'Bhuvaneswari Palani', email: 'bhuvi.m4@mail.com', phone: '9842998824', area: 'Saibaba Colony', scenario: 'CLEARED_FIRST_LOAN' },
+        { name: 'Radha Kannan', email: 'radha.m5@mail.com', phone: '9842998825', area: 'Gandhipuram', scenario: 'COMPLETED_MAX_4' }
       ]
     },
     {
@@ -61,13 +61,13 @@ async function seedData() {
       group_name: 'Meenakshi Amman Kuzhu',
       area: 'Simmakkal',
       district: 'Madurai',
-      admin: { name: 'Meenakshi Sundaram', email: 'meenakshi.admin@magalir.org', phone: '9843114455' },
+      admin: { name: 'Meenakshi Sundaram', email: 'meenakshi.admin@mail.com', phone: '9843114455' },
       members: [
-        { name: 'Karpagam Muthu', email: 'karpagam.m1@magalir.org', phone: '9843998831', area: 'Simmakkal', scenario: '4TH_LOAN_QUALIFIED' },
-        { name: 'Alagammai Ramar', email: 'alagammai.m2@magalir.org', phone: '9843998832', area: 'Goripalayam', scenario: 'OVERDUE_WITH_FINE' },
-        { name: 'Valli Perumal', email: 'valli.m3@magalir.org', phone: '9843998833', area: 'Teppakulam', scenario: 'ACTIVE_NORMAL' },
-        { name: 'Kanimozhi Pandian', email: 'kanimozhi.m4@magalir.org', phone: '9843998834', area: 'Tallakulam', scenario: '4TH_LOAN_LOW_SCORE' },
-        { name: 'Chitra Subramanian', email: 'chitra.m5@magalir.org', phone: '9843998835', area: 'Simmakkal', scenario: 'CLEARED_FIRST_LOAN' }
+        { name: 'Karpagam Muthu', email: 'karpagam.m1@mail.com', phone: '9843998831', area: 'Simmakkal', scenario: '4TH_LOAN_QUALIFIED' },
+        { name: 'Alagammai Ramar', email: 'alagammai.m2@mail.com', phone: '9843998832', area: 'Goripalayam', scenario: 'OVERDUE_WITH_FINE' },
+        { name: 'Valli Perumal', email: 'valli.m3@mail.com', phone: '9843998833', area: 'Teppakulam', scenario: 'ACTIVE_NORMAL' },
+        { name: 'Kanimozhi Pandian', email: 'kanimozhi.m4@mail.com', phone: '9843998834', area: 'Tallakulam', scenario: '4TH_LOAN_LOW_SCORE' },
+        { name: 'Chitra Subramanian', email: 'chitra.m5@mail.com', phone: '9843998835', area: 'Simmakkal', scenario: 'CLEARED_FIRST_LOAN' }
       ]
     },
     {
@@ -75,13 +75,13 @@ async function seedData() {
       group_name: 'Kaveri Thaimagal Kuzhu',
       area: 'Thillai Nagar',
       district: 'Trichy',
-      admin: { name: 'Thilagavathi Ganesan', email: 'thilaga.admin@magalir.org', phone: '9844115566' },
+      admin: { name: 'Thilagavathi Ganesan', email: 'thilaga.admin@mail.com', phone: '9844115566' },
       members: [
-        { name: 'Kalaiselvi Rajan', email: 'kalai.m1@magalir.org', phone: '9844998841', area: 'Thillai Nagar', scenario: 'CLEARED_FIRST_LOAN' },
-        { name: 'Banumathi Durai', email: 'banu.m2@magalir.org', phone: '9844998842', area: 'Srirangam', scenario: 'OVERDUE_WITH_FINE' },
-        { name: 'Saraswathi Bose', email: 'saras.m3@magalir.org', phone: '9844998843', area: 'Woraiyur', scenario: '4TH_LOAN_QUALIFIED' },
-        { name: 'Vijaya Lakshmi', email: 'vijaya.m4@magalir.org', phone: '9844998844', area: 'Ponmalai', scenario: 'ACTIVE_NORMAL' },
-        { name: 'Mallika Dharmaraj', email: 'mallika.m5@magalir.org', phone: '9844998845', area: 'Thillai Nagar', scenario: 'COMPLETED_MAX_4' }
+        { name: 'Kalaiselvi Rajan', email: 'kalai.m1@mail.com', phone: '9844998841', area: 'Thillai Nagar', scenario: 'CLEARED_FIRST_LOAN' },
+        { name: 'Banumathi Durai', email: 'banu.m2@mail.com', phone: '9844998842', area: 'Srirangam', scenario: 'OVERDUE_WITH_FINE' },
+        { name: 'Saraswathi Bose', email: 'saras.m3@mail.com', phone: '9844998843', area: 'Woraiyur', scenario: '4TH_LOAN_QUALIFIED' },
+        { name: 'Vijaya Lakshmi', email: 'vijaya.m4@mail.com', phone: '9844998844', area: 'Ponmalai', scenario: 'ACTIVE_NORMAL' },
+        { name: 'Mallika Dharmaraj', email: 'mallika.m5@mail.com', phone: '9844998845', area: 'Thillai Nagar', scenario: 'COMPLETED_MAX_4' }
       ]
     },
     {
@@ -89,13 +89,13 @@ async function seedData() {
       group_name: 'Mangalam Magalir Kuzhu',
       area: 'Fairlands',
       district: 'Salem',
-      admin: { name: 'Poongothai Marimuthu', email: 'poongo.admin@magalir.org', phone: '9845116677' },
+      admin: { name: 'Poongothai Marimuthu', email: 'poongo.admin@mail.com', phone: '9845116677' },
       members: [
-        { name: 'Manimegalai Sivam', email: 'mani.m1@magalir.org', phone: '9845998851', area: 'Fairlands', scenario: '4TH_LOAN_QUALIFIED' },
-        { name: 'Kokila Govind', email: 'kokila.m2@magalir.org', phone: '9845998852', area: 'Hasthampatti', scenario: 'OVERDUE_WITH_FINE' },
-        { name: 'Parvathi Mani', email: 'parvathi.m3@magalir.org', phone: '9845998853', area: 'Suramangalam', scenario: 'ACTIVE_NORMAL' },
-        { name: 'Nithya Shankar', email: 'nithya.m4@magalir.org', phone: '9845998854', area: 'Ammapet', scenario: '4TH_LOAN_LOW_SCORE' },
-        { name: 'Suseela Murugesan', email: 'suseela.m5@magalir.org', phone: '9845998855', area: 'Fairlands', scenario: 'CLEARED_FIRST_LOAN' }
+        { name: 'Manimegalai Sivam', email: 'mani.m1@mail.com', phone: '9845998851', area: 'Fairlands', scenario: '4TH_LOAN_QUALIFIED' },
+        { name: 'Kokila Govind', email: 'kokila.m2@mail.com', phone: '9845998852', area: 'Hasthampatti', scenario: 'OVERDUE_WITH_FINE' },
+        { name: 'Parvathi Mani', email: 'parvathi.m3@mail.com', phone: '9845998853', area: 'Suramangalam', scenario: 'ACTIVE_NORMAL' },
+        { name: 'Nithya Shankar', email: 'nithya.m4@mail.com', phone: '9845998854', area: 'Ammapet', scenario: '4TH_LOAN_LOW_SCORE' },
+        { name: 'Suseela Murugesan', email: 'suseela.m5@mail.com', phone: '9845998855', area: 'Fairlands', scenario: 'CLEARED_FIRST_LOAN' }
       ]
     }
   ];
