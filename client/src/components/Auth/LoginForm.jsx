@@ -103,7 +103,37 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onPendin
           </p>
         </div>
 
-        {/* Demo test accounts section removed */}
+        {/* Quick Role Fillers for Instant Access */}
+        <div style={{ marginBottom: '1.25rem', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Sparkles size={13} color="#047857" />
+            <span>{lang === 'ta' ? 'விரைவு உள்நுழைவு (Quick 1-Click Fill):' : 'Instant 1-Click Role Login:'}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+            {quickLogins.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleQuickFill(item)}
+                style={{
+                  padding: '6px 4px',
+                  borderRadius: '6px',
+                  border: `1px solid ${item.badge}40`,
+                  backgroundColor: '#ffffff',
+                  color: item.badge,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                }}
+                title={item.email}
+              >
+                {item.roleName}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {error && (
           <div style={{
