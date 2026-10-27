@@ -85,7 +85,7 @@ export default function Navbar({ user, onLogout }) {
             letterSpacing: '-0.02em',
             fontFamily: 'var(--font-heading)'
           }}>
-            {t('app_tamil_title')} • Magalir Kuzhu
+            {t('app_tamil_title')} • Magalir Connect AI
           </div>
           <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontWeight: 600 }}>
             {t('portal_sub')}

@@ -20,7 +20,10 @@ import BroadcastTab from './BroadcastTab';
 import LoanCalculatorModal from '../LoanCalculatorModal';
 import { api } from '../../services/api';
 
+import { useLanguage } from '../../i18n';
+
 export default function SuperAdminDashboard({ currentUser }) {
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingLoansCount, setPendingLoansCount] = useState(0);
@@ -43,25 +46,25 @@ export default function SuperAdminDashboard({ currentUser }) {
   }, [activeTab]);
 
   const navItems = [
-    { id: 'overview', label: 'Master Overview', icon: LayoutDashboard },
+    { id: 'overview', label: t('tab_overview'), icon: LayoutDashboard },
     {
       id: 'pending',
-      label: 'Pending Registrations',
+      label: t('tab_pending_users'),
       icon: UserCheck,
       badge: pendingCount > 0 ? pendingCount : null,
       badgeColor: '#d97706'
     },
     {
       id: 'loans',
-      label: 'Loan Workflow',
+      label: t('tab_loans'),
       icon: IndianRupee,
       badge: pendingLoansCount > 0 ? pendingLoansCount : null,
       badgeColor: '#7c3aed'
     },
-    { id: 'calculator', label: 'Loan Calculator', icon: Calculator },
-    { id: 'groups', label: 'Groups & Chatrooms', icon: Building2 },
-    { id: 'users', label: 'Members Directory', icon: Users },
-    { id: 'broadcast', label: 'Broadcast Announcements', icon: Megaphone }
+    { id: 'calculator', label: lang === 'ta' ? 'கடன் கால்குலேட்டர்' : 'Loan Calculator', icon: Calculator },
+    { id: 'groups', label: t('tab_groups'), icon: Building2 },
+    { id: 'users', label: t('tab_users'), icon: Users },
+    { id: 'broadcast', label: t('tab_broadcast'), icon: Megaphone }
   ];
 
   return (

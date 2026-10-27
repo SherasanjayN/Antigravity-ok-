@@ -42,7 +42,7 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
             lineHeight: 1.2,
             letterSpacing: '-0.02em'
           }}>
-            {t('app_tamil_title')} • {t('app_title')}
+            {t('app_tamil_title')} • {lang === 'ta' ? t('app_title') : 'Magalir Connect AI: A Smart Loan and Group Management System for Rural Women’s Self-Help Groups with Tamil'}
           </h1>
 
           <p style={{
@@ -181,7 +181,7 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
         color: '#64748b'
       }}>
         <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: '#334155' }}>
-          மகளிர் குழு • Magalir Kuzhu Management System
+          மகளிர் கனெக்ட் AI • Magalir Connect AI: A Smart Loan and Group Management System for Rural Women’s Self-Help Groups with Tamil
         </p>
         <p style={{ margin: 0 }}>
           Dedicated to financial inclusion, mutual assistance, and community empowerment in Tamil Nadu.

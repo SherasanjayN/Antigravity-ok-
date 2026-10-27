@@ -3,9 +3,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const translations = {
   en: {
     // Branding
-    app_title: 'Magalir Kuzhu Management System',
-    app_tamil_title: 'மகளிர் குழு',
-    portal_sub: 'Self-Help Group (SHG) Financial Empowerment Portal',
+    app_title: 'Magalir Connect AI',
+    app_full_title: 'Magalir Connect AI: A Smart Loan and Group Management System for Rural Women’s Self-Help Groups with Tamil',
+    app_tamil_title: 'மகளிர் கனெக்ட் AI',
+    portal_sub: 'A Smart Loan & Group Management System for Rural Women’s SHGs',
     
     // Auth & Navigation
     signin: 'Sign In',
@@ -140,9 +141,10 @@ const translations = {
   },
   ta: {
     // Branding
-    app_title: 'மகளிர் குழு மேலாண்மை அமைப்பு',
-    app_tamil_title: 'மகளிர் குழு',
-    portal_sub: 'சுய உதவிக் குழு (SHG) நிதி மேம்பாட்டு தளம்',
+    app_title: 'மகளிர் கனெக்ட் AI: கிராமப்புற மகளிர் சுய உதவிக் குழுக்களுக்கான ஸ்மார்ட் கடன் மற்றும் குழு மேலாண்மை அமைப்பு',
+    app_full_title: 'மகளிர் கனெக்ட் AI: கிராமப்புற மகளிர் சுய உதவிக் குழுக்களுக்கான ஸ்மார்ட் கடன் மற்றும் குழு மேலாண்மை அமைப்பு (தமிழ் வழிகாட்டலுடன்)',
+    app_tamil_title: 'மகளிர் கனெக்ட் AI',
+    portal_sub: 'கிராமப்புற மகளிர் சுய உதவிக் குழுக்களுக்கான ஸ்மார்ட் கடன் மற்றும் குழு மேலாண்மை அமைப்பு',
     
     // Auth & Navigation
     signin: 'உள்நுழைக',
