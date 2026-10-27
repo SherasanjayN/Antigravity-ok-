@@ -1,10 +1,42 @@
 [
   {
-    "id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
-    "group_name": "Mylapore Sakthi Kuzhu",
+    "id": "grp-chn-01",
+    "group_name": "Mylapore Mahasakthi Kuzhu",
     "area": "Mylapore",
     "district": "Chennai",
-    "group_admin_id": "2df2e987-86b8-4873-8ac7-ab8666d52733",
-    "created_at": "2026-10-27T10:16:40.562Z"
+    "group_admin_id": "usr-admin-grp-chn-01",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "grp-cbe-02",
+    "group_name": "Marutham Magalir Kuzhu",
+    "area": "Gandhipuram",
+    "district": "Coimbatore",
+    "group_admin_id": "usr-admin-grp-cbe-02",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "grp-mdu-03",
+    "group_name": "Meenakshi Amman Kuzhu",
+    "area": "Simmakkal",
+    "district": "Madurai",
+    "group_admin_id": "usr-admin-grp-mdu-03",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "grp-try-04",
+    "group_name": "Kaveri Thaimagal Kuzhu",
+    "area": "Thillai Nagar",
+    "district": "Trichy",
+    "group_admin_id": "usr-admin-grp-try-04",
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "grp-slm-05",
+    "group_name": "Mangalam Magalir Kuzhu",
+    "area": "Fairlands",
+    "district": "Salem",
+    "group_admin_id": "usr-admin-grp-slm-05",
+    "created_at": "2026-01-01T00:00:00.000Z"
   }
 ]
