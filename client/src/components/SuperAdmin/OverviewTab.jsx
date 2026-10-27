@@ -12,7 +12,8 @@ import {
   Send,
   PieChart,
   BarChart3,
-  CreditCard
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 import { api } from '../../services/api';
 import AnnouncementsFeed from '../AnnouncementsFeed';

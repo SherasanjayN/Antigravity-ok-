@@ -99,6 +99,10 @@ export const api = {
     getEmailLogs: () => request('/admin/email-logs'),
     retryEmail: (emailId) => request(`/admin/emails/${emailId}/retry`, {
       method: 'POST'
+    }),
+    assignGroupAdmin: (groupId, payload) => request(`/admin/groups/${groupId}/assign-admin`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
     })
   },
 
@@ -112,6 +116,10 @@ export const api = {
     rejectLoan: (loanId, reason) => request(`/group-admin/loans/${loanId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ reason })
+    }),
+    applyLoan: (payload) => request('/group-admin/loans/apply', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     })
   },
 
@@ -150,6 +158,9 @@ export const api = {
     sendMessage: (groupId, text) => request(`/groups/${groupId}/messages`, {
       method: 'POST',
       body: JSON.stringify({ text })
+    }),
+    deleteMessage: (groupId, messageId) => request(`/groups/${groupId}/messages/${messageId}`, {
+      method: 'DELETE'
     })
   },
 

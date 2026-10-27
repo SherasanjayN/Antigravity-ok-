@@ -574,6 +574,81 @@ app.post('/api/admin/groups', authenticateToken, requireRole('SUPER_ADMIN'), (re
   }
 });
 
+// Assign / Change Group Admin (Super Admin)
+app.post('/api/admin/groups/:groupId/assign-admin', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { group_admin_id } = req.body;
+
+    const groups = readCollection('groups');
+    const users = readCollection('users');
+
+    const groupIndex = groups.findIndex(g => g.id === groupId);
+    if (groupIndex === -1) {
+      return res.status(404).json({ error: 'Group not found.' });
+    }
+
+    const previousAdminId = groups[groupIndex].group_admin_id;
+
+    // If new admin is specified, verify user exists and belongs to the group
+    let newAdmin = null;
+    if (group_admin_id) {
+      newAdmin = users.find(u => u.id === group_admin_id);
+      if (!newAdmin) {
+        return res.status(404).json({ error: 'Selected user not found.' });
+      }
+      if (newAdmin.group_id !== groupId) {
+        return res.status(400).json({ error: 'User does not belong to this group.' });
+      }
+    }
+
+    // Demote previous admin back to USER if different
+    if (previousAdminId && previousAdminId !== group_admin_id) {
+      const prevUserIdx = users.findIndex(u => u.id === previousAdminId);
+      if (prevUserIdx !== -1) {
+        users[prevUserIdx].role = 'USER';
+      }
+    }
+
+    // Promote new admin to GROUP_ADMIN
+    if (newAdmin) {
+      const newUserIdx = users.findIndex(u => u.id === group_admin_id);
+      if (newUserIdx !== -1) {
+        users[newUserIdx].role = 'GROUP_ADMIN';
+      }
+    }
+
+    groups[groupIndex].group_admin_id = group_admin_id || null;
+
+    writeCollection('groups', groups);
+    writeCollection('users', users);
+
+    recordAudit(
+      req.user.id,
+      req.user.name,
+      'SUPER_ADMIN',
+      'CHANGE_GROUP_ADMIN',
+      `Changed group admin for ${groups[groupIndex].group_name} to ${newAdmin ? newAdmin.name : 'None'}`
+    );
+
+    if (newAdmin) {
+      createNotification(
+        newAdmin.id,
+        'ROLE_UPDATED',
+        'Group Admin Role Designated | குழு தலைவர் பதவி வழங்கப்பட்டது',
+        `You have been appointed as the Group Admin for ${groups[groupIndex].group_name}.`
+      );
+    }
+
+    res.json({
+      message: 'Group admin updated successfully.',
+      group: groups[groupIndex]
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to assign group admin.' });
+  }
+});
+
 // All loans (Super Admin)
 app.get('/api/admin/loans', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
   try {
@@ -1280,6 +1355,132 @@ app.post('/api/member/loans', authenticateToken, (req, res) => {
   }
 });
 
+// Group Admin Loan Request (Directly notifies Super Admin and sets status to PENDING_SUPER_ADMIN)
+app.post('/api/group-admin/loans/apply', authenticateToken, requireRole('GROUP_ADMIN'), (req, res) => {
+  try {
+    const {
+      amount,
+      purpose,
+      repayment_frequency = 'WEEKLY',
+      tenure_value = 10,
+      payment_mode = 'UPI',
+      upi_email,
+      preferred_first_due_date,
+      notes
+    } = req.body;
+
+    const users = readCollection('users');
+    const loans = readCollection('loans');
+    const groups = readCollection('groups');
+
+    const currentUser = users.find(u => u.id === req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (!currentUser.group_id) {
+      return res.status(400).json({ error: 'You must be associated with an SHG group.' });
+    }
+
+    const activeLoan = checkUserActiveLoan(currentUser.id);
+    if (activeLoan) {
+      return res.status(400).json({
+        error: 'You already have an active loan. Please complete its repayment before applying for another loan.',
+        activeLoan
+      });
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: 'Please enter a valid loan amount.' });
+    }
+
+    if (numAmount > 10000) {
+      return res.status(400).json({ error: 'Maximum loan limit per request is ₹10,000 as per Magalir Kuzhu policy.' });
+    }
+
+    if (payment_mode === 'UPI') {
+      if (!upi_email || upi_email.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+        return res.status(400).json({
+          error: `UPI Verification: Email must match your registered email address (${currentUser.email}).`
+        });
+      }
+    }
+
+    const applicationId = `APP-GA-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const calc = calculateEmi(numAmount, 12, repayment_frequency, tenure_value);
+
+    const newLoan = {
+      id: uuidv4(),
+      application_id: applicationId,
+      loan_account_number: null,
+      user_id: currentUser.id,
+      group_id: currentUser.group_id,
+      amount: numAmount,
+      sanctioned_amount: null,
+      purpose: purpose ? purpose.trim() : 'Group Admin Self-Help Enterprise',
+      annual_interest_rate: 12,
+      interest_method: 'REDUCING_BALANCE',
+      repayment_frequency,
+      tenure_value: Number(tenure_value),
+      tenure_unit: repayment_frequency === 'WEEKLY' ? 'Weeks' : 'Months',
+      total_installments: calc.installments,
+      installment_amount: calc.emi,
+      total_interest: calc.totalInterest,
+      total_repayment: calc.totalRepayment,
+      payment_mode,
+      upi_email: payment_mode === 'UPI' ? upi_email.trim().toLowerCase() : null,
+      preferred_first_due_date: preferred_first_due_date || null,
+      notes: notes ? notes.trim() : '',
+      status: 'PENDING_SUPER_ADMIN', // Directly to Super Admin
+      disbursement_status: 'NOT_DISBURSED',
+      total_paid: 0,
+      outstanding_balance: calc.totalRepayment,
+      requested_at: new Date().toISOString(),
+      timeline: [
+        {
+          status: 'PENDING_SUPER_ADMIN',
+          note: `Group Admin loan application of ₹${numAmount} submitted. Directly forwarded to Super Admin for sanction.`,
+          by_name: currentUser.name,
+          at: new Date().toISOString()
+        }
+      ]
+    };
+
+    loans.unshift(newLoan);
+    writeCollection('loans', loans);
+
+    // Directly notify all Super Admins
+    const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN');
+    superAdmins.forEach(sa => {
+      createNotification(
+        sa.id,
+        'GROUP_ADMIN_LOAN_APPLICATION',
+        'Group Admin Loan Request Submitted | குழு தலைவர் கடன் விண்ணப்பம்',
+        `Group Admin ${currentUser.name} has submitted a loan request for ₹${numAmount} directly for your sanction.`,
+        newLoan.id
+      );
+    });
+
+    createNotification(
+      currentUser.id,
+      'LOAN_SUBMITTED',
+      'Loan Request Submitted to Super Admin',
+      'Your loan request has been forwarded directly to the Super Admin for sanction.',
+      newLoan.id
+    );
+
+    recordAudit(currentUser.id, currentUser.name, 'GROUP_ADMIN', 'APPLY_LOAN_DIRECT', `Submitted Group Admin loan application ${applicationId} for ₹${numAmount}`);
+
+    res.status(201).json({
+      message: 'Loan application submitted successfully and forwarded directly to Super Admin.',
+      loan: newLoan
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit loan application.' });
+  }
+});
+
 // ----------------- REPAYMENT & LEDGER ROUTES -----------------
 
 // Record Repayment (by Group Admin or Super Admin)
@@ -1551,6 +1752,39 @@ app.post('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
     res.status(201).json(newMsg);
   } catch (err) {
     res.status(500).json({ error: 'Failed to send message.' });
+  }
+});
+
+app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, (req, res) => {
+  try {
+    const { groupId, messageId } = req.params;
+    const messages = readCollection('messages');
+    const msgIndex = messages.findIndex(m => m.id === messageId && m.group_id === groupId);
+
+    if (msgIndex === -1) {
+      return res.status(404).json({ error: 'Message not found.' });
+    }
+
+    const msg = messages[msgIndex];
+
+    // Allowed to delete:
+    // 1. SUPER_ADMIN can delete any message
+    // 2. GROUP_ADMIN of that group can delete any message in their group
+    // 3. User who sent the message (sender_id === req.user.id) can delete their own message
+    const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
+    const isGroupAdmin = req.user.role === 'GROUP_ADMIN' && req.user.group_id === groupId;
+    const isSender = msg.sender_id === req.user.id;
+
+    if (!isSuperAdmin && !isGroupAdmin && !isSender) {
+      return res.status(403).json({ error: 'Access forbidden: You can only delete messages sent by you.' });
+    }
+
+    messages.splice(msgIndex, 1);
+    writeCollection('messages', messages);
+
+    res.json({ success: true, messageId });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete message.' });
   }
 });
 

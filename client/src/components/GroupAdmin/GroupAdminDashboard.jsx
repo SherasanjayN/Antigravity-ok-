@@ -13,13 +13,17 @@ import {
   ArrowRight,
   FileText,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  Calculator,
+  Plus
 } from 'lucide-react';
 import { api } from '../../services/api';
 import GroupChat from '../GroupChat';
 import AnnouncementsFeed from '../AnnouncementsFeed';
 import StatusBadge from '../StatusBadge';
 import RepaymentLedgerModal from '../RepaymentLedgerModal';
+import LoanCalculatorModal from '../LoanCalculatorModal';
+import ValidatedVoiceField from '../VoiceInput/ValidatedVoiceField';
 import { useLanguage } from '../../i18n';
 
 export default function GroupAdminDashboard({ currentUser }) {
@@ -39,6 +43,67 @@ export default function GroupAdminDashboard({ currentUser }) {
 
   // Repayment Ledger Modal
   const [selectedLedgerLoanId, setSelectedLedgerLoanId] = useState(null);
+
+  // Group Admin Loan Request Modal
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [amount, setAmount] = useState(5000);
+  const [purpose, setPurpose] = useState('SHG Enterprise & Group Admin Livelihood Expansion');
+  const [frequency, setFrequency] = useState('WEEKLY');
+  const [tenure, setTenure] = useState(10);
+  const [paymentMode, setPaymentMode] = useState('UPI');
+  const [upiEmail, setUpiEmail] = useState('');
+  const [submittingLoan, setSubmittingLoan] = useState(false);
+  const [loanFormError, setLoanFormError] = useState('');
+
+  const handleApplyLoan = async (e) => {
+    e.preventDefault();
+    setLoanFormError('');
+
+    const numAmount = Number(amount);
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setLoanFormError('Please enter a valid loan amount.');
+      return;
+    }
+
+    if (numAmount > 10000) {
+      setLoanFormError('Maximum loan limit is ₹10,000 per request as per policy.');
+      return;
+    }
+
+    if (paymentMode === 'UPI') {
+      if (!upiEmail.trim()) {
+        setLoanFormError('Please enter your registered email ID to verify your UPI account.');
+        return;
+      }
+      if (upiEmail.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+        setLoanFormError(`UPI Verification Failed: Entered email must match your registered email (${currentUser.email}).`);
+        return;
+      }
+    }
+
+    setSubmittingLoan(true);
+    try {
+      const res = await api.groupAdmin.applyLoan({
+        amount: numAmount,
+        purpose,
+        repayment_frequency: frequency,
+        tenure_value: tenure,
+        payment_mode: paymentMode,
+        upi_email: paymentMode === 'UPI' ? upiEmail.trim() : null
+      });
+
+      setActionSuccess(res.message || 'Loan request submitted directly to Super Admin for sanction.');
+      setShowApplyModal(false);
+      setAmount(5000);
+      setUpiEmail('');
+      await loadData();
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err) {
+      setLoanFormError(err.message || 'Failed to submit loan application.');
+    } finally {
+      setSubmittingLoan(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -185,6 +250,20 @@ export default function GroupAdminDashboard({ currentUser }) {
         </button>
 
         <button
+          onClick={() => setActiveTab('calculator')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-sm)', border: 'none',
+            background: activeTab === 'calculator' ? '#ecfdf5' : 'transparent',
+            color: activeTab === 'calculator' ? '#065f46' : 'var(--text-main)',
+            fontWeight: activeTab === 'calculator' ? 700 : 500, cursor: 'pointer', textAlign: 'left'
+          }}
+        >
+          <Calculator size={18} color={activeTab === 'calculator' ? '#047857' : 'var(--text-muted)'} />
+          <span>{lang === 'ta' ? 'கடன் கால்குலேட்டர்' : 'Loan Calculator'}</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('chat')}
           style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
@@ -240,6 +319,23 @@ export default function GroupAdminDashboard({ currentUser }) {
                     : 'Stage 1 preliminary assessment of loan applications and active repayment recording.'}
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowApplyModal(true)}
+                className="btn btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.65rem 1.25rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 700
+                }}
+              >
+                <Plus size={16} />
+                <span>{lang === 'ta' ? '+ கடன் கோரிக்கை (தலைவர்)' : '+ Request Loan Amount'}</span>
+              </button>
             </div>
 
             {/* Quick Metrics */}
@@ -428,16 +524,249 @@ export default function GroupAdminDashboard({ currentUser }) {
           </div>
         )}
 
-        {/* TAB 3: CHAT */}
+        {/* TAB 3: CALCULATOR */}
+        {activeTab === 'calculator' && (
+          <div className="card">
+            <LoanCalculatorModal isEmbedded={true} />
+          </div>
+        )}
+
+        {/* TAB 4: CHAT */}
         {activeTab === 'chat' && group && (
           <GroupChat group={group} currentUser={currentUser} />
         )}
 
-        {/* TAB 4: ANNOUNCEMENTS */}
+        {/* TAB 5: ANNOUNCEMENTS */}
         {activeTab === 'announcements' && (
           <AnnouncementsFeed announcements={announcements} />
         )}
       </main>
+
+      {/* GROUP ADMIN APPLY LOAN MODAL */}
+      {showApplyModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem', backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', borderRadius: '14px', maxWidth: '640px',
+            width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#047857' }}>
+              {lang === 'ta' ? 'குழு தலைவர் கடன் விண்ணப்பம்' : 'Group Admin Loan Request'}
+            </h3>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              {lang === 'ta'
+                ? 'இந்த கடன் கோரிக்கை நேரடியாக முதன்மை நிர்வாகிக்கு (Super Admin) ஒப்புதலுக்காக அனுப்பப்படும்.'
+                : 'This loan request will be directly submitted to the Super Admin for sanction.'}
+            </p>
+
+            {loanFormError && (
+              <div style={{
+                padding: '0.75rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                color: '#b91c1c', borderRadius: '6px', fontSize: '0.88rem', marginBottom: '1rem'
+              }}>
+                {loanFormError}
+              </div>
+            )}
+
+            <form onSubmit={handleApplyLoan} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {t('loan_amount_label')} *
+                </label>
+                <ValidatedVoiceField
+                  value={amount}
+                  onChange={(val) => setAmount(Number(val) || val)}
+                  validationRules={{
+                    type: 'number',
+                    min: 1000,
+                    max: 10000,
+                    errorMessage: lang === 'ta' ? 'கடன் தொகை ₹1,000 முதல் ₹10,000 வரை இருக்க வேண்டும்.' : 'Loan amount must be between ₹1,000 and ₹10,000.'
+                  }}
+                >
+                  <input
+                    type="number"
+                    min="1000"
+                    max="10000"
+                    step="500"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                    style={{
+                      width: '100%', padding: '0.65rem 2.5rem 0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '1.1rem', fontWeight: 700, color: '#047857'
+                    }}
+                  />
+                </ValidatedVoiceField>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {t('purpose_label')} *
+                </label>
+                <ValidatedVoiceField
+                  value={purpose}
+                  onChange={(val) => setPurpose(val)}
+                  validationRules={{
+                    type: 'text',
+                    minLength: 4,
+                    errorMessage: lang === 'ta' ? 'நோக்கத்தை தெளிவாகக் குறிப்பிடவும்.' : 'Please enter the loan purpose clearly.'
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={purpose}
+                    onChange={(e) => setPurpose(e.target.value)}
+                    required
+                    placeholder={lang === 'ta' ? 'கடன் நோக்கம்...' : 'Loan purpose...'}
+                    style={{
+                      width: '100%', padding: '0.65rem 2.5rem 0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                    }}
+                  />
+                </ValidatedVoiceField>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    {t('frequency_label')}
+                  </label>
+                  <select
+                    value={frequency}
+                    onChange={(e) => {
+                      setFrequency(e.target.value);
+                      setTenure(e.target.value === 'WEEKLY' ? 10 : 6);
+                    }}
+                    style={{
+                      width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                    }}
+                  >
+                    <option value="WEEKLY">{t('freq_weekly')}</option>
+                    <option value="MONTHLY">{t('freq_monthly')}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    {t('tenure_label')}
+                  </label>
+                  <select
+                    value={tenure}
+                    onChange={(e) => setTenure(Number(e.target.value))}
+                    style={{
+                      width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                    }}
+                  >
+                    {frequency === 'WEEKLY' ? (
+                      <>
+                        <option value={8}>8 Weeks</option>
+                        <option value={10}>10 Weeks (Standard)</option>
+                        <option value={12}>12 Weeks</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value={3}>3 Months</option>
+                        <option value={6}>6 Months (Standard)</option>
+                        <option value={12}>12 Months</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {t('payment_mode_label')} *
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('UPI')}
+                    style={{
+                      flex: 1, padding: '0.65rem', borderRadius: '8px',
+                      border: paymentMode === 'UPI' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: paymentMode === 'UPI' ? '#ecfdf5' : '#ffffff',
+                      color: paymentMode === 'UPI' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    {t('mode_upi')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('CASH')}
+                    style={{
+                      flex: 1, padding: '0.65rem', borderRadius: '8px',
+                      border: paymentMode === 'CASH' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: paymentMode === 'CASH' ? '#ecfdf5' : '#ffffff',
+                      color: paymentMode === 'CASH' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    {t('mode_cash')}
+                  </button>
+                </div>
+              </div>
+
+              {paymentMode === 'UPI' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    {t('upi_email_verify')} *
+                  </label>
+                  <ValidatedVoiceField
+                    value={upiEmail}
+                    onChange={(val) => setUpiEmail(val)}
+                    validationRules={{
+                      type: 'email'
+                    }}
+                  >
+                    <input
+                      type="email"
+                      value={upiEmail}
+                      onChange={(e) => setUpiEmail(e.target.value)}
+                      placeholder={currentUser.email}
+                      required
+                      style={{
+                        width: '100%', padding: '0.65rem 2.5rem 0.65rem 0.85rem', borderRadius: '8px',
+                        border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                      }}
+                    />
+                  </ValidatedVoiceField>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Must match your login email: <strong>{currentUser.email}</strong>
+                  </span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowApplyModal(false)}
+                  className="btn btn-secondary"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingLoan}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Plus size={16} />
+                  <span>{submittingLoan ? 'Submitting to Super Admin...' : 'Submit Loan Request to Super Admin'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* REJECT MODAL */}
       {rejectLoan && (

@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ShieldCheck, UserCheck, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Send, MessageSquare, ShieldCheck, UserCheck, ShieldAlert, RefreshCw, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
+import ValidatedVoiceField from './VoiceInput/ValidatedVoiceField';
+import { useLanguage } from '../i18n';
 
-export default function GroupChat({ groupId, groupName, currentUser }) {
+export default function GroupChat({ groupId, groupName, group, currentUser }) {
+  const { lang } = useLanguage();
+  const effectiveGroupId = groupId || group?.id;
+  const effectiveGroupName = groupName || group?.group_name;
+
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
   const fetchMessages = async (silent = false) => {
-    if (!groupId) return;
+    if (!effectiveGroupId) return;
     try {
       if (!silent) setLoading(true);
-      const data = await api.chat.getMessages(groupId);
+      const data = await api.chat.getMessages(effectiveGroupId);
       setMessages(data);
       setError('');
     } catch (err) {
@@ -28,30 +35,44 @@ export default function GroupChat({ groupId, groupName, currentUser }) {
 
   useEffect(() => {
     fetchMessages();
-    // Live updates polling every 2.5 seconds
     const interval = setInterval(() => {
       fetchMessages(true);
     }, 2500);
     return () => clearInterval(interval);
-  }, [groupId]);
+  }, [effectiveGroupId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim() || sending) return;
+    e?.preventDefault();
+    if (!inputText.trim() || sending || !effectiveGroupId) return;
 
     setSending(true);
     try {
-      const newMsg = await api.chat.sendMessage(groupId, inputText.trim());
+      const newMsg = await api.chat.sendMessage(effectiveGroupId, inputText.trim());
       setMessages(prev => [...prev, newMsg]);
       setInputText('');
     } catch (err) {
       setError(err.message || 'Failed to post message.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm(lang === 'ta' ? 'இந்த செய்தியை நிச்சயமாக நீக்க வேண்டுமா?' : 'Are you sure you want to delete this message?')) {
+      return;
+    }
+    setDeletingId(messageId);
+    try {
+      await api.chat.deleteMessage(effectiveGroupId, messageId);
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } catch (err) {
+      alert(err.message || 'Failed to delete message.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -112,18 +133,48 @@ export default function GroupChat({ groupId, groupName, currentUser }) {
         ) : (
           messages.map((m) => {
             const isMine = m.sender_id === currentUser?.id;
+            const canDelete = currentUser?.role === 'SUPER_ADMIN' ||
+                              (currentUser?.role === 'GROUP_ADMIN' && currentUser?.group_id === effectiveGroupId) ||
+                              isMine;
+
             return (
               <div
                 key={m.id}
                 className={`chat-bubble ${isMine ? 'mine' : 'theirs'}`}
+                style={{ position: 'relative' }}
               >
-                <div className="chat-sender">
-                  {getRoleIcon(m.sender_role)}
-                  <span>{m.sender_name}</span>
-                  {m.sender_role === 'GROUP_ADMIN' && <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>(Group Admin)</span>}
-                  {m.sender_role === 'SUPER_ADMIN' && <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>(Super Admin)</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="chat-sender">
+                    {getRoleIcon(m.sender_role)}
+                    <span>{m.sender_name}</span>
+                    {m.sender_role === 'GROUP_ADMIN' && <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>(Group Admin)</span>}
+                    {m.sender_role === 'SUPER_ADMIN' && <span style={{ fontSize: '0.65rem', opacity: 0.85 }}>(Super Admin)</span>}
+                  </div>
+
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMessage(m.id)}
+                      disabled={deletingId === m.id}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: isMine ? '#fecaca' : '#94a3b8',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginLeft: '8px',
+                        transition: 'color 0.2s'
+                      }}
+                      title={lang === 'ta' ? 'செய்தியை நீக்கு' : 'Delete message'}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
                 </div>
-                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.text}</div>
+
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: '2px' }}>{m.text}</div>
                 <div className="chat-timestamp">{formatTime(m.timestamp)}</div>
               </div>
             );
@@ -139,20 +190,30 @@ export default function GroupChat({ groupId, groupName, currentUser }) {
       )}
 
       <form onSubmit={handleSend} className="chat-input-bar">
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder={`Message ${groupName || 'group'}...`}
-          className="form-input"
-          style={{ flex: 1, padding: '0.6rem 0.9rem' }}
-          disabled={sending}
-        />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <ValidatedVoiceField
+            value={inputText}
+            onChange={(val) => setInputText(prev => prev ? `${prev} ${val}` : val)}
+            validationRules={{
+              type: 'text'
+            }}
+          >
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={lang === 'ta' ? `${effectiveGroupName || 'குழு'}-க்கு செய்தி அனுப்பவும்...` : `Message ${effectiveGroupName || 'group'}...`}
+              className="form-input"
+              style={{ width: '100%', padding: '0.6rem 2.6rem 0.6rem 0.9rem' }}
+              disabled={sending}
+            />
+          </ValidatedVoiceField>
+        </div>
         <button
           type="submit"
           disabled={sending || !inputText.trim()}
           className="btn btn-primary"
-          style={{ padding: '0.6rem 1rem' }}
+          style={{ padding: '0.6rem 1rem', height: '40px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
         >
           <Send size={16} />
           <span>{sending ? 'Sending...' : 'Send'}</span>

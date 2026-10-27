@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Users, ShieldCheck, Calculator, ArrowRight, CheckCircle2, TrendingUp, Sparkles, HeartHandshake } from 'lucide-react';
 import LoginForm from './Auth/LoginForm';
 import RegisterForm from './Auth/RegisterForm';
-import LoanCalculatorModal from './LoanCalculatorModal';
 import { useLanguage } from '../i18n';
 
 export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPendingUser }) {
   const { t, lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register' | 'calculator'
+  const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -140,27 +139,6 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
           >
             {t('signup')}
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('calculator')}
-            style={{
-              padding: '0.75rem 1.75rem',
-              borderRadius: '30px',
-              border: activeTab === 'calculator' ? '2px solid #047857' : '1.5px solid #cbd5e1',
-              backgroundColor: activeTab === 'calculator' ? '#ecfdf5' : '#ffffff',
-              color: '#065f46',
-              fontWeight: 700,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            <Calculator size={18} />
-            <span>{t('tab_loans')} / {t('calc_title')}</span>
-          </button>
         </div>
 
         {/* View Content */}
@@ -187,12 +165,6 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
                 onRegisterSuccess={onRegisterSuccess}
                 onSwitchToLogin={() => setActiveTab('login')}
               />
-            </div>
-          )}
-
-          {activeTab === 'calculator' && (
-            <div>
-              <LoanCalculatorModal isEmbedded={true} />
             </div>
           )}
         </div>

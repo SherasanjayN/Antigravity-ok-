@@ -8,7 +8,8 @@ import {
   Megaphone,
   Mail,
   ShieldAlert,
-  MessageSquare
+  MessageSquare,
+  Calculator
 } from 'lucide-react';
 import OverviewTab from './OverviewTab';
 import PendingUsersTab from './PendingUsersTab';
@@ -16,7 +17,7 @@ import LoansTab from './LoansTab';
 import GroupsTab from './GroupsTab';
 import UsersTab from './UsersTab';
 import BroadcastTab from './BroadcastTab';
-import EmailLogsTab from './EmailLogsTab';
+import LoanCalculatorModal from '../LoanCalculatorModal';
 import { api } from '../../services/api';
 
 export default function SuperAdminDashboard({ currentUser }) {
@@ -57,10 +58,10 @@ export default function SuperAdminDashboard({ currentUser }) {
       badge: pendingLoansCount > 0 ? pendingLoansCount : null,
       badgeColor: '#7c3aed'
     },
+    { id: 'calculator', label: 'Loan Calculator', icon: Calculator },
     { id: 'groups', label: 'Groups & Chatrooms', icon: Building2 },
     { id: 'users', label: 'Members Directory', icon: Users },
-    { id: 'broadcast', label: 'Broadcast Announcements', icon: Megaphone },
-    { id: 'emails', label: 'Email Dispatch Audit', icon: Mail }
+    { id: 'broadcast', label: 'Broadcast Announcements', icon: Megaphone }
   ];
 
   return (
@@ -136,10 +137,14 @@ export default function SuperAdminDashboard({ currentUser }) {
         {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
         {activeTab === 'pending' && <PendingUsersTab onActionComplete={fetchBadgeCounts} />}
         {activeTab === 'loans' && <LoansTab onActionComplete={fetchBadgeCounts} />}
+        {activeTab === 'calculator' && (
+          <div className="card">
+            <LoanCalculatorModal isEmbedded={true} />
+          </div>
+        )}
         {activeTab === 'groups' && <GroupsTab currentUser={currentUser} />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'broadcast' && <BroadcastTab />}
-        {activeTab === 'emails' && <EmailLogsTab />}
       </main>
     </div>
   );

@@ -21,11 +21,12 @@ export function useVoiceInput({ lang = 'ta-IN', continuous = false } = {}) {
       window.msSpeechRecognition;
 
     if (SpeechRecognition) {
-      setIsSupported(true);
-      const recognition = new SpeechRecognition();
-      recognition.continuous = continuous;
-      recognition.interimResults = true;
-      recognition.lang = lang;
+      try {
+        setIsSupported(true);
+        const recognition = new SpeechRecognition();
+        recognition.continuous = continuous;
+        recognition.interimResults = true;
+        recognition.lang = lang;
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -62,6 +63,10 @@ export function useVoiceInput({ lang = 'ta-IN', continuous = false } = {}) {
       };
 
       recognitionRef.current = recognition;
+      } catch (err) {
+        console.warn('SpeechRecognition initialization error:', err);
+        setIsSupported(false);
+      }
     } else {
       setIsSupported(false);
     }

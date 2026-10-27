@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Lock, Mail, LogIn, AlertCircle, KeyRound, Sparkles } from 'lucide-react';
 import { api, setToken } from '../../services/api';
 import { useLanguage } from '../../i18n';
+import ValidatedVoiceField from '../VoiceInput/ValidatedVoiceField';
 
 export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onPendingUser }) {
   const { t, lang } = useLanguage();
@@ -16,19 +17,19 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onPendin
     {
       roleName: lang === 'ta' ? 'முதன்மை நிர்வாகி' : 'Super Admin',
       email: 'sherasanjayn@gmail.com',
-      pass: 'Admin@12345',
+      pass: 'admin123',
       badge: '#047857'
     },
     {
       roleName: lang === 'ta' ? 'குழு தலைவர் / நிர்வாகி' : 'Group Admin (Kavitha)',
       email: 'kavitha.m@example.com',
-      pass: 'Kavitha@123',
+      pass: 'admin123',
       badge: '#0284c7'
     },
     {
       roleName: lang === 'ta' ? 'குழு உறுப்பினர்' : 'Member (Lakshmi)',
       email: 'lakshmi.r@example.com',
-      pass: 'Lakshmi@123',
+      pass: 'admin123',
       badge: '#7c3aed'
     }
   ];
@@ -124,15 +125,23 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onPendin
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="form-group">
             <label className="form-label">{t('email_label')}</label>
-            <input
-              type="email"
+            <ValidatedVoiceField
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. sherasanjayn@gmail.com"
-              className="form-input"
-              autoComplete="off"
-              required
-            />
+              onChange={(val) => setEmail(val)}
+              validationRules={{
+                type: 'email'
+              }}
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={lang === 'ta' ? 'உங்கள் மின்னஞ்சல் முகவரி' : 'Enter your registered email'}
+                className="form-input"
+                autoComplete="off"
+                required
+              />
+            </ValidatedVoiceField>
           </div>
 
           <div className="form-group">

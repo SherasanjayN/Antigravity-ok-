@@ -128,11 +128,11 @@ export default function App() {
           {currentUser.role === 'USER' && (
             <MemberDashboard currentUser={currentUser} />
           )}
-
-          {/* SHE AI - Gemini Intelligence Assistant */}
-          <SheAiAssistant currentUser={currentUser} />
         </>
       )}
+
+      {/* SHE AI - Available only inside authenticated user dashboard, not on home landing page */}
+      {currentUser && <SheAiAssistant currentUser={currentUser} />}
     </div>
   );
 }

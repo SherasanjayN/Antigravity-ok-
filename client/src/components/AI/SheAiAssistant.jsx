@@ -11,12 +11,14 @@ import {
   ShieldCheck,
   Calculator,
   Volume2,
+  VolumeX,
+  Square,
   Mic,
   RefreshCw,
   PhoneCall
 } from 'lucide-react';
-import { useLanguage } from '../../i18n.jsx';
-import ValidatedVoiceField from '../VoiceInput/ValidatedVoiceField.jsx';
+import { useLanguage } from '../../i18n';
+import ValidatedVoiceField from '../VoiceInput/ValidatedVoiceField';
 
 /**
  * SHE AI - Self-Help Empowerment AI Assistant
@@ -33,8 +35,8 @@ export default function SheAiAssistant({ currentUser }) {
     {
       sender: 'she_ai',
       text: lang === 'ta'
-        ? `வணக்கம் ${currentUser?.name || 'தோழி'}! நான் "SHE AI" (சுய உதவிக் குழு அறிவார்ந்த உதவியாளர்). மகளிர் சுய உதவிக் குழு கடன்கள், EMI கணக்கீடு, அரசு திட்டங்கள், அல்லது உங்கள் சந்தேகம் எதையும் கேளுங்கள்!`
-        : `Hello ${currentUser?.name || 'Member'}! I am "SHE AI", your Self-Help Empowerment Intelligent Assistant. Ask me anything regarding loans, 3-tier approvals, reducing EMI calculations, government schemes, or SHG rules!`,
+        ? `வணக்கம் ${currentUser?.name || 'தோழி'}! நான் "SHE AI" (மகளிர் சுய உதவிக் குழு உதவியாளர்). கடன்கள், தலைவர் கடன் விண்ணப்பம், தவணை கணக்கீடு, அரசு திட்டங்கள், அல்லது உங்கள் சந்தேகம் எதையும் கேளுங்கள்!`
+        : `Hello ${currentUser?.name || 'Member'}! I am "SHE AI", your Self-Help Group Assistant. Ask me anything regarding loans, group admin loan requests, EMI calculations, deleting chat messages, government schemes, or SHG rules!`,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -45,8 +47,22 @@ export default function SheAiAssistant({ currentUser }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Text-to-speech for AI responses
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const stopSpeaking = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
+
+  // Text-to-speech for AI responses (only speaks when chat is open)
   useEffect(() => {
+    if (!isOpen) {
+      stopSpeaking();
+      return;
+    }
+
     if (messages.length && 'speechSynthesis' in window) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.sender === 'she_ai') {
@@ -56,13 +72,18 @@ export default function SheAiAssistant({ currentUser }) {
         const utter = new SpeechSynthesisUtterance(cleanText);
         utter.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
         utter.rate = 0.95;
+
+        utter.onstart = () => setIsSpeaking(true);
+        utter.onend = () => setIsSpeaking(false);
+        utter.onerror = () => setIsSpeaking(false);
+
         const voices = window.speechSynthesis.getVoices();
         const voice = voices.find(v => v.lang.startsWith(utter.lang) || (lang === 'ta' && v.lang.includes('ta')));
         if (voice) utter.voice = voice;
         window.speechSynthesis.speak(utter);
       }
     }
-  }, [messages, lang]);
+  }, [messages, lang, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -255,11 +276,87 @@ export default function SheAiAssistant({ currentUser }) {
       }
     }
 
-    // 5. Default General Response
+    // 5. Repayment Tracking & Ledger Inquiries
+    if (q.includes('repay') || q.includes('ledger') || q.includes('ரசீது') || q.includes('தவணை செலுத்துவது') || q.includes('கட்டிய தொகை') || q.includes('மீதி') || q.includes('balance') || q.includes('due')) {
+      if (isTa) {
+        return `💳 **தவணை செலுத்துதல் மற்றும் கணக்கு ஏடு (Repayment & Ledger):**
+
+1. **தவணை அட்டவணையைப் பார்க்க:** உங்கள் **"My Loans"** பகுதிக்குச் சென்று, உங்கள் கடனுக்கு அருகில் உள்ள **"Ledger"** பொத்தானை அழுத்தவும்.
+2. **அசல் மற்றும் வட்டி விவரம்:** ஒவ்வொரு தவணையிலும் நீங்கள் செலுத்திய அசல், வட்டி மற்றும் மீதமுள்ள இருப்பு தொகை தெளிவாக பட்டியலிடப்பட்டிருக்கும்.
+3. **செலுத்தும் முறை:**
+   - **குழு தலைவரிடம் ரொக்கம் (Cash):** குழு தலைவரிடம் பணம் செலுத்தியதும் உடனடியாக உங்கள் கணக்கில் பதிவு செய்யப்பட்டு ரசீது உருவாக்கப்படும்.
+   - **UPI முறை:** வங்கி / யுபிஐ மூலம் நேரடியாக செலுத்தி ரசீது எண்ணைப் பெறலாம்.
+4. **தானியங்கி ரசீது:** பணம் செலுத்தப்பட்ட உடனேயே அதிகாரப்பூர்வ ரசீது எண் (MK-RCP-...) உருவாக்கப்பட்டு மின்னஞ்சல் அனுப்பப்படும்!`;
+      } else {
+        return `💳 **Loan Repayments & Live Ledger Tracking:**
+
+1. **View Full Ledger:** Go to your **My Loans** tab and click the green **Ledger** button next to your disbursed loan.
+2. **Principal & Interest Breakdown:** Every installment displays principal paid, interest paid, and remaining balance under reducing-balance terms.
+3. **Payment Modes:** Pay via Cash directly to your Group Admin or online via UPI.
+4. **Official Receipts:** Upon payment recording, an official receipt number (MK-RCP-...) is generated and dispatched to your email!`;
+      }
+    }
+
+    // 6. Tamil Nadu Government Schemes for SHGs
+    if (q.includes('scheme') || q.includes('திட்டம்') || q.includes('அரசு') || q.includes('மானியம்') || q.includes('subsidy') || q.includes('வங்கி')) {
+      if (isTa) {
+        return `🏛️ **தமிழ்நாடு மகளிர் சுய உதவிக் குழு அரசு நலத்திட்டங்கள்:**
+
+1. **வாழ்ந்து காட்டுவோம் திட்டம் (TNSRLM):** கிராமப்புற பெண்களின் தொழில் முனைவு மற்றும் குறைந்த வட்டி கடன் உதவி.
+2. **முதலமைச்சரின் சிறுதொழில் கடன் மானியம்:** சுய தொழில் தொடங்கும் மகளிருக்கு 25% முதல் 35% வரை மானியம்.
+3. **கலைஞர் மகளிர் உரிமைத் திட்டம்:** தகுதிவாய்ந்த குடும்பத் தலைவிகளுக்கு மாதம் ₹1,000 உரிமைத் தொகை.
+4. **வங்கி இணைப்பு கடன் (Bank Linkage):** தொடர் சேமிப்பு மற்றும் தவணை சரியாக செலுத்தும் குழுக்களுக்கு ₹5 லட்சம் முதல் ₹20 லட்சம் வரை குறைந்த வட்டியில் வங்கிக் கடன்!`;
+      } else {
+        return `🏛️ **Tamil Nadu Government Support & SHG Schemes:**
+
+1. **TNSRLM (Pudhu Vaazhvu):** Tamil Nadu State Rural Livelihoods Mission offering financial inclusion & skill grants.
+2. **Micro-Enterprise Subsidies:** 25% to 35% capital subsidy for women-led cottage industries and dairy farming.
+3. **Kalaignar Magalir Urimai Thittam:** Direct monthly empowerment benefit of ₹1,000 for eligible women heads of households.
+4. **Bank Credit Linkage:** Groups with consistent savings & repayment records qualify for formal bank loans from ₹5 Lakhs up to ₹20 Lakhs!`;
+      }
+    }
+
+    // 7. Group Admin Loan Request Direct to Super Admin
+    if (q.includes('group admin') || q.includes('தலைவர் கடன்') || q.includes('தலைவர் லோன்') || q.includes('admin loan') || (q.includes('தலைவர்') && q.includes('கடன்'))) {
+      if (isTa) {
+        return `👑 **குழு தலைவர் கடன் விண்ணப்பம் (Direct Super Admin Loan):**
+- குழு தலைவர்களும் (Group Admin) தொழில் மற்றும் வாழ்வாதார தேவைகளுக்காக கடன் கோரலாம்.
+- குழு தலைவர் டாஷ்போர்டில் உள்ள **"+ Request Loan Amount"** பொத்தானை அழுத்தி விண்ணப்பிக்கலாம்.
+- இந்த விண்ணப்பம் நேரடியாக **முதன்மை நிர்வாகிக்கு (Super Admin)** ஒப்புதலுக்காகவும் நிதி வழங்கலுக்காகவும் செல்லும்!`;
+      } else {
+        return `👑 **Group Admin Loan Request Flow:**
+- Group Admins can also request loans for business development or self-help enterprises.
+- Click the **"+ Request Loan Amount"** button on the Group Admin Dashboard.
+- The request bypasses group review and is routed **directly to the Super Admin** for sanction and disbursement!`;
+      }
+    }
+
+    // 8. Group Chat & Delete Message
+    if (q.includes('chat') || q.includes('delete') || q.includes('நீக்க') || q.includes('அரட்டை') || q.includes('மெசேஜ்') || q.includes('குழு அரட்டை') || q.includes('பேசுவது')) {
+      if (isTa) {
+        return `💬 **குழு அரட்டை மற்றும் செய்தி நீக்குதல் (Live Chat & Message Deletion):**
+
+1. **குரல் உள்ளீடு (Voice-to-Text):** மெசேஜ் பாக்ஸில் உள்ள மைக் பொத்தானை அழுத்தி பேசி நேரடியாக டைப் செய்யலாம்!
+2. **செய்தியை நீக்குவது எப்படி? (Delete Message):**
+   - நீங்கள் அனுப்பிய செய்திக்கு அருகில் உள்ள **Trash (குப்பைத்தொட்டி)** ஐகானை கிளிக் செய்து நீக்கலாம்.
+   - முதன்மை நிர்வாகி (Super Admin) மற்றும் குழு தலைவர் (Group Admin) எந்த தகவலையும் நீக்க முடியும்.
+3. **பாதுகாப்பான உரையாடல்:** கூட்டங்கள், சேமிப்பு விவரங்கள் மற்றும் ஆலோசனைகளை நேரலையாக பகிரலாம்!`;
+      } else {
+        return `💬 **Real-Time Group Chat & Message Deletion:**
+
+1. **Voice-to-Text Microphone:** Press the mic symbol inside the message input field to speak, and your words will type automatically!
+2. **Deleting Messages:**
+   - Click the red/grey **Trash icon** next to any message you sent to delete it.
+   - Admins can delete any inappropriate or redundant messages in the group.
+3. **Instant Community Collaboration:** Share meeting alerts, savings reminders, and queries securely in real-time!`;
+      }
+    }
+
+    // 8. Default General Response
     if (isTa) {
-      return `🤝 வணக்கம்! நான் **SHE AI** – மகளிர் சுய உதவிக் குழு உதவியாளர்.\n\nநீங்கள் கேட்டது: "${userQuery}"\n\n📋 **என்னால் இவற்றில் உதவ முடியும்:**\n- 💰 கடன் விண்ணப்பம் மற்றும் விதிகள்\n- 🧮 EMI கணக்கீடு (தொகையும் காலமும் சொல்லுங்கள்)\n- 🔄 3-நிலை ஒப்புதல் செயல்முறை\n- 🚨 அவசர உதவி எண்கள் (SOS)\n- 🏛️ அரசு திட்டங்கள்\n\nகொஞ்சம் விவரமாக கேளுங்கள் – சரியான பதில் தருகிறேன்! 😊`;
+      return `🤝 வணக்கம்! நான் **SHE AI** – மகளிர் சுய உதவிக் குழு உதவியாளர்.\n\nநீங்கள் கேட்டது: "${userQuery}"\n\n📋 **என்னால் உதவக்கூடிய முக்கிய தலைப்புகள்:**\n- 📝 கடன் விண்ணப்பிப்பது எப்படி? (வழிகாட்டுதல்)\n- 🧮 EMI கணக்கீடு (எ.கா: ₹5000 கடன் 10 வாரம்)\n- 💳 தவணை செலுத்துதல் மற்றும் லெட்ஜர் ரசீதுகள்\n- 🔄 3-நிலை கடன் ஒப்புதல் செயல்முறை\n- 🏛️ தமிழ்நாடு மகளிர் நலத்திட்டங்கள் & மானியங்கள்\n- 🚨 அவசர உதவி எண்கள் (181, 112, 108)\n\nகேள்வியை கேளுங்கள் – சரியான பதில் தருகிறேன்! 😊`;
     } else {
-      return `🤝 Hello! I am **SHE AI** – your Self-Help Group Smart Assistant.\n\nYou asked: "${userQuery}"\n\n📋 **I can help you with:**\n- 💰 Loan application rules & limits\n- 🧮 EMI calculation (just tell me amount + weekly/monthly)\n- 🔄 3-tier approval process\n- 🚨 SOS & emergency helplines\n- 🏛️ Government schemes for SHG members\n\nTry asking something like: *"Calculate EMI for ₹5000 weekly"* or *"How do I apply for a loan?"*`;
+      return `🤝 Hello! I am **SHE AI** – your Self-Help Group Smart Assistant.\n\nYou asked: "${userQuery}"\n\n📋 **Topics I am trained on:**\n- 📝 How to apply for a loan (Step-by-step)\n- 🧮 Reducing-balance EMI calculation (e.g. ₹5,000 weekly/monthly)\n- 💳 Repayment schedules & official receipts\n- 🔄 3-tier approval pipeline\n- 🏛️ Tamil Nadu SHG Government schemes & subsidies\n- 🚨 SOS & Emergency helplines (181, 112, 108)\n\nFeel free to ask any specific question! 😊`;
     }
   };
 
@@ -297,24 +394,24 @@ export default function SheAiAssistant({ currentUser }) {
 
   return (
     <>
-      {/* Floating Trigger Button */}
+      {/* Floating Trigger Button - Positioned at Top */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           style={{
             position: 'fixed',
-            bottom: '24px',
+            top: '80px',
             right: '24px',
             zIndex: 1100,
             backgroundColor: '#047857',
             color: '#ffffff',
-            border: 'none',
+            border: '2px solid rgba(255,255,255,0.4)',
             borderRadius: '50px',
-            padding: '0.85rem 1.4rem',
+            padding: '0.65rem 1.25rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.6rem',
+            gap: '0.65rem',
             boxShadow: '0 10px 25px -5px rgba(4, 120, 87, 0.4), 0 8px 10px -6px rgba(4, 120, 87, 0.2)',
             cursor: 'pointer',
             fontWeight: 800,
@@ -322,43 +419,49 @@ export default function SheAiAssistant({ currentUser }) {
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
           className="she-ai-trigger"
+          title={lang === 'ta' ? 'SHE AI உதவியாளரை திறக்கவும்' : 'Open SHE AI Assistant'}
         >
+          {/* Custom Logo: SHE with small Ai at top */}
           <div style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '50%',
-            backgroundColor: '#d1fae5',
-            color: '#047857',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Sparkles size={16} />
-          </div>
-          <span>SHE AI {lang === 'ta' ? 'அறிவார்ந்த உதவியாளர்' : 'Intelligence'}</span>
-          <span style={{
-            fontSize: '0.65rem',
+            position: 'relative',
             backgroundColor: '#064e3b',
             color: '#a7f3d0',
-            padding: '2px 6px',
-            borderRadius: '999px',
-            fontWeight: 700
+            borderRadius: '10px',
+            padding: '2px 8px 3px 8px',
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            fontWeight: 900,
+            letterSpacing: '0.04em',
+            border: '1px solid #10b981'
           }}>
-            AI
+            <span style={{ fontSize: '1rem', color: '#ffffff' }}>SHE</span>
+            <sup style={{
+              fontSize: '0.62rem',
+              color: '#34d399',
+              fontWeight: 800,
+              marginLeft: '2px',
+              top: '-0.45em'
+            }}>
+              Ai
+            </sup>
+          </div>
+
+          <span style={{ fontWeight: 700 }}>
+            {lang === 'ta' ? 'உதவியாளர்' : 'Assistant'}
           </span>
         </button>
       )}
 
-      {/* Floating Chat Modal */}
+      {/* Floating Chat Modal - Positioned at Top Right */}
       {isOpen && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          width: '400px',
+          top: '75px',
+          right: '24px',
+          width: '420px',
           maxWidth: 'calc(100vw - 32px)',
-          height: '580px',
-          maxHeight: 'calc(100vh - 40px)',
+          height: '590px',
+          maxHeight: 'calc(100vh - 90px)',
           backgroundColor: '#ffffff',
           borderRadius: '18px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -392,9 +495,25 @@ export default function SheAiAssistant({ currentUser }) {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>
-                    SHE AI
-                  </span>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    fontWeight: 900,
+                    fontSize: '1.2rem',
+                    letterSpacing: '-0.01em',
+                    color: '#ffffff'
+                  }}>
+                    <span>SHE</span>
+                    <sup style={{
+                      fontSize: '0.7rem',
+                      color: '#a7f3d0',
+                      fontWeight: 800,
+                      marginLeft: '2px',
+                      top: '-0.45em'
+                    }}>
+                      Ai
+                    </sup>
+                  </div>
                   <span style={{
                     fontSize: '0.65rem',
                     backgroundColor: 'rgba(255,255,255,0.25)',
@@ -402,33 +521,63 @@ export default function SheAiAssistant({ currentUser }) {
                     borderRadius: '10px',
                     fontWeight: 700
                   }}>
-                    Gemini Active
+                    Active
                   </span>
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#d1fae5' }}>
-                  {lang === 'ta' ? 'சுய உதவிக் குழு அறிவுசார் உதவியாளர்' : 'Self-Help Group Knowledge Companion'}
+                  {lang === 'ta' ? 'மகளிர் சுய உதவிக் குழு வழிகாட்டி' : 'Self-Help Group Knowledge Guide'}
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: '50%',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={18} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {/* Stop Speaking / Mute Button */}
+              <button
+                type="button"
+                onClick={stopSpeaking}
+                style={{
+                  background: isSpeaking ? '#ef4444' : 'rgba(255, 255, 255, 0.2)',
+                  border: isSpeaking ? '1px solid #ffffff' : 'none',
+                  color: '#ffffff',
+                  borderRadius: '20px',
+                  padding: '4px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  transition: 'all 0.2s ease'
+                }}
+                title={lang === 'ta' ? 'பேசுவதை உடனடியாக நிறுத்து' : 'Stop speaking voice'}
+              >
+                <Square size={11} fill="#ffffff" />
+                <span>{lang === 'ta' ? 'Stop (நிறுத்து)' : 'Stop Voice'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  stopSpeaking();
+                  setIsOpen(false);
+                }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title={lang === 'ta' ? 'அரட்டையை மூடு மற்றும் பேச்சை நிறுத்து' : 'Close and stop talking'}
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {/* Quick Prompts Bar */}
