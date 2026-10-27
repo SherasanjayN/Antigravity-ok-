@@ -70,47 +70,55 @@ export default function GroupAdminDashboard({ currentUser }) {
   const [submittingMemLoan, setSubmittingMemLoan] = useState(false);
   const [memLoanError, setMemLoanError] = useState('');
 
-  const handleAddMemberLoan = async (e) => {
+  // Group Admin Quick Repayment / Money Collection Modal (e.g. -500 deduction)
+  const [showRepayModal, setShowRepayModal] = useState(false);
+  const [repayMember, setRepayMember] = useState(null);
+  const [repayAmount, setRepayAmount] = useState(500);
+  const [repayMethod, setRepayMethod] = useState('CASH');
+  const [submittingRepay, setSubmittingRepay] = useState(false);
+  const [repayError, setRepayError] = useState('');
+
+  const handleRecordQuickRepayment = async (e) => {
     e.preventDefault();
-    setMemLoanError('');
+    setRepayError('');
 
-    if (!selectedMemberId) {
-      setMemLoanError('Please select a group member.');
+    if (!repayMember || !repayMember.active_loan) {
+      setRepayError('No active loan found for this member.');
       return;
     }
 
-    const numAmt = Number(memLoanAmount);
-    if (!memLoanAmount || isNaN(numAmt) || numAmt <= 0) {
-      setMemLoanError('Please enter a valid loan amount.');
+    const numAmt = Number(repayAmount);
+    if (!repayAmount || isNaN(numAmt) || numAmt <= 0) {
+      setRepayError('Please enter a valid repayment amount.');
       return;
     }
 
-    if (numAmt > 10000) {
-      setMemLoanError('Maximum loan limit is ₹10,000 as per SHG policy.');
+    const maxAmt = repayMember.active_loan.outstanding_balance || 10000;
+    if (numAmt > maxAmt) {
+      setRepayError(`Payment amount cannot exceed remaining balance of ₹${maxAmt}.`);
       return;
     }
 
-    setSubmittingMemLoan(true);
+    setSubmittingRepay(true);
     try {
-      const res = await api.groupAdmin.addMemberLoan({
-        member_id: selectedMemberId,
+      const res = await api.repayments.record({
+        loan_id: repayMember.active_loan.id,
         amount: numAmt,
-        purpose: memLoanPurpose,
-        repayment_frequency: memLoanFrequency,
-        tenure_value: memLoanTenure,
-        payment_mode: memLoanMode
+        payment_method: repayMethod,
+        transaction_reference: repayMethod === 'UPI' ? 'TXN-SHG-DIRECT' : '',
+        payment_date: new Date().toISOString().split('T')[0],
+        notes: `₹${numAmt} collected by Group Admin ${currentUser.name}`
       });
 
-      setActionSuccess(res.message || 'Member loan created successfully.');
-      setShowMemberLoanModal(false);
-      setSelectedMemberId('');
-      setMemLoanAmount(5000);
+      setActionSuccess(res.message || `₹${numAmt} collected successfully! Loan balance updated.`);
+      setShowRepayModal(false);
+      setRepayMember(null);
       await loadData();
-      setTimeout(() => setActionSuccess(''), 5000);
+      setTimeout(() => setActionSuccess(''), 6000);
     } catch (err) {
-      setMemLoanError(err.message || 'Failed to add member loan.');
+      setRepayError(err.message || 'Failed to record repayment.');
     } finally {
-      setSubmittingMemLoan(false);
+      setSubmittingRepay(false);
     }
   };
 
@@ -674,25 +682,57 @@ export default function GroupAdminDashboard({ currentUser }) {
                           ₹{balance}
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedMemberId(m.id);
-                              setShowMemberLoanModal(true);
-                            }}
-                            className="btn btn-sm btn-primary"
-                            style={{
-                              padding: '4px 10px',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            <Plus size={13} />
-                            <span>{lang === 'ta' ? 'கடன் சேர்' : '+ Add Loan'}</span>
-                          </button>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {m.active_loan && m.remaining_balance > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRepayMember(m);
+                                  setRepayAmount(m.active_loan.installment_amount ? Math.round(m.active_loan.installment_amount) : 500);
+                                  setShowRepayModal(true);
+                                }}
+                                className="btn btn-sm"
+                                style={{
+                                  padding: '5px 10px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 800,
+                                  backgroundColor: '#10b981',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}
+                                title="Collect weekly/monthly installment (e.g. ₹500)"
+                              >
+                                <span>💵</span>
+                                <span>{lang === 'ta' ? 'தவணை வரவு (-₹)' : 'Collect Pay (-₹)'}</span>
+                              </button>
+                            ) : null}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedMemberId(m.id);
+                                setShowMemberLoanModal(true);
+                              }}
+                              className="btn btn-sm btn-secondary"
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                              title="Add new loan for member"
+                            >
+                              <Plus size={13} />
+                              <span>{lang === 'ta' ? 'புதிய கடன்' : '+ New Loan'}</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1412,6 +1452,159 @@ export default function GroupAdminDashboard({ currentUser }) {
                 >
                   <Plus size={16} />
                   <span>{submittingMemLoan ? 'Submitting...' : (lang === 'ta' ? 'கடன் விண்ணப்பத்தை சமர்ப்பி' : 'Submit Member Loan')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* QUICK REPAYMENT / MONEY COLLECTION MODAL (e.g. -500 deduction) */}
+      {showRepayModal && repayMember && repayMember.active_loan && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem', backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', borderRadius: '14px', maxWidth: '520px',
+            width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                💵
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>
+                  {lang === 'ta' ? 'தவணை வரவு / கழித்தல் (-₹)' : 'Record Member Repayment (-₹)'}
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Member: <strong>{repayMember.name}</strong> ({repayMember.phone})
+                </span>
+              </div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '8px',
+              border: '1px solid #e2e8f0', marginBottom: '1.25rem', fontSize: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Loan Account:</span>
+                <strong>{repayMember.active_loan.loan_account_number || 'MK-LN-ACTIVE'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Current Outstanding:</span>
+                <strong style={{ color: '#b45309', fontSize: '1rem' }}>₹{repayMember.active_loan.outstanding_balance}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Scheduled Installment:</span>
+                <span style={{ fontWeight: 700, color: '#047857' }}>
+                  ₹{Math.round(repayMember.active_loan.installment_amount || 500)} ({repayMember.active_loan.repayment_frequency || 'WEEKLY'})
+                </span>
+              </div>
+            </div>
+
+            {repayError && (
+              <div style={{
+                padding: '0.75rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                color: '#b91c1c', borderRadius: '6px', fontSize: '0.88rem', marginBottom: '1rem'
+              }}>
+                {repayError}
+              </div>
+            )}
+
+            <form onSubmit={handleRecordQuickRepayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'செலுத்தும் தவணைத் தொகை (₹)' : 'Repayment Amount to Deduct (₹)'} *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 800, fontSize: '1.2rem', color: '#047857' }}>
+                    -₹
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={repayMember.active_loan.outstanding_balance}
+                    value={repayAmount}
+                    onChange={(e) => setRepayAmount(e.target.value)}
+                    required
+                    style={{
+                      width: '100%', padding: '0.7rem 0.85rem 0.7rem 2.5rem', borderRadius: '8px',
+                      border: '2px solid #10b981', fontSize: '1.25rem', fontWeight: 800, color: '#047857', backgroundColor: '#f0fdf4'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  <span>Min: ₹1</span>
+                  <span>Max remaining: ₹{repayMember.active_loan.outstanding_balance}</span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'பெறப்பட்ட முறை (Payment Method)' : 'Payment Received As'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRepayMethod('CASH')}
+                    style={{
+                      flex: 1, padding: '0.65rem', borderRadius: '8px',
+                      border: repayMethod === 'CASH' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: repayMethod === 'CASH' ? '#ecfdf5' : '#ffffff',
+                      color: repayMethod === 'CASH' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    💵 {t('mode_cash')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRepayMethod('UPI')}
+                    style={{
+                      flex: 1, padding: '0.65rem', borderRadius: '8px',
+                      border: repayMethod === 'UPI' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: repayMethod === 'UPI' ? '#ecfdf5' : '#ffffff',
+                      color: repayMethod === 'UPI' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    📱 {t('mode_upi')}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{
+                backgroundColor: '#ecfdf5', padding: '0.75rem', borderRadius: '8px',
+                border: '1px solid #a7f3d0', fontSize: '0.8rem', color: '#065f46'
+              }}>
+                🔔 <strong>Instant Notification:</strong> Upon clicking confirm, ₹{repayAmount} will be deducted from {repayMember.name}'s loan. Notifications will be instantly dispatched to the <strong>Member (User)</strong>, <strong>Group Admin</strong>, and <strong>Super Admin</strong>. If the balance reaches ₹0, the loan will be marked as <strong>COMPLETED</strong>!
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRepayModal(false);
+                    setRepayMember(null);
+                  }}
+                  className="btn btn-secondary"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingRepay}
+                  className="btn btn-primary"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    backgroundColor: '#10b981', borderColor: '#10b981', fontWeight: 800
+                  }}
+                >
+                  <span>✓</span>
+                  <span>{submittingRepay ? 'Recording...' : `Confirm Payment (-₹${repayAmount})`}</span>
                 </button>
               </div>
             </form>

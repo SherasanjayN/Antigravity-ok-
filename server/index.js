@@ -1239,6 +1239,7 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
   try {
     const users = readCollection('users');
     const groups = readCollection('groups');
+    const loans = readCollection('loans');
 
     let group = null;
     if (req.user.role === 'GROUP_ADMIN') {
@@ -1255,6 +1256,9 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
       .filter(u => u.group_id === group.id && u.status === 'APPROVED')
       .map(u => {
         const eligibility = getMemberLoanEligibility(u.id);
+        const memberActiveLoans = loans.filter(l => l.user_id === u.id && isLoanActive(l));
+        const activeLoan = memberActiveLoans.length > 0 ? memberActiveLoans[0] : null;
+
         return {
           id: u.id,
           name: u.name,
@@ -1267,6 +1271,15 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
           repayment_score: eligibility.repaymentScore,
           completed_loans: eligibility.completedLoans,
           remaining_balance: eligibility.remainingBalance,
+          active_loan: activeLoan ? {
+            id: activeLoan.id,
+            loan_account_number: activeLoan.loan_account_number || activeLoan.application_id,
+            amount: activeLoan.amount,
+            installment_amount: activeLoan.installment_amount,
+            outstanding_balance: activeLoan.outstanding_balance,
+            repayment_frequency: activeLoan.repayment_frequency,
+            status: activeLoan.status
+          } : null,
           eligibility: {
             eligible: eligibility.eligible,
             loanNumber: eligibility.loanNumber,
@@ -2243,12 +2256,33 @@ app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN'), async
       emailResult = await sendUpiRepaymentEmail(member.email, member.name, receipt);
     }
 
-    // In-app notification
+    // In-app notification to member (User)
     createNotification(
       member.id,
       'REPAYMENT_CONFIRMED',
-      isFullyRepaid ? 'Loan Fully Repaid! 🎉 | கடன் முற்றிலும் செலுத்தப்பட்டது' : 'Repayment Recorded | தவணை பதிவு செய்யப்பட்டது',
-      `Payment of ₹${numAmount} (${payment_method}) recorded. Receipt: ${receiptNumber}. Remaining: ₹${loan.outstanding_balance}.`,
+      isFullyRepaid ? 'Loan Fully Repaid! 🎉 | கடன் முற்றிலும் செலுத்தப்பட்டது' : 'Repayment Recorded | தவணை வரவு வைக்கப்பட்டது',
+      `Payment of ₹${numAmount} (${payment_method}) deducted/recorded by Group Admin ${req.user.name}. Receipt: ${receiptNumber}. Remaining loan balance: ₹${loan.outstanding_balance}.${isFullyRepaid ? ' Your loan is now completely settled and closed!' : ''}`,
+      loan.id
+    );
+
+    // In-app notification to Super Admin
+    const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN');
+    superAdmins.forEach(sa => {
+      createNotification(
+        sa.id,
+        'REPAYMENT_RECORDED',
+        isFullyRepaid ? `Loan #${loan.loan_account_number || loan.application_id} Completed 🎉` : 'Repayment Collected',
+        `Group Admin ${req.user.name} recorded payment of ₹${numAmount} for member ${member.name}. Outstanding balance: ₹${loan.outstanding_balance}.`,
+        loan.id
+      );
+    });
+
+    // In-app notification to Group Admin
+    createNotification(
+      req.user.id,
+      'REPAYMENT_RECORDED',
+      'Repayment Successfully Recorded',
+      `Recorded ₹${numAmount} for ${member.name}. Receipt: ${receiptNumber}. New outstanding: ₹${loan.outstanding_balance}.${isFullyRepaid ? ' Loan marked as COMPLETED.' : ''}`,
       loan.id
     );
 
