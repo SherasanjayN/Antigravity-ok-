@@ -40,7 +40,10 @@ export default function RepaymentLedgerModal({ loanId, currentUser, onClose, onP
     }
   }, [loanId]);
 
-  const canRecordRepayment = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'GROUP_ADMIN';
+  // Business Rule: User gives amount to Group Admin monthly/weekly; Group Admin records repayment into the loan so it minus updates; Super Admin and User can view only.
+  const isGroupAdmin = currentUser?.role === 'GROUP_ADMIN';
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const canRecordRepayment = isGroupAdmin;
 
   const handleRecordPayment = async (e) => {
     e.preventDefault();
@@ -219,6 +222,22 @@ export default function RepaymentLedgerModal({ loanId, currentUser, onClose, onP
             >
               + {t('record_repayment_title')}
             </button>
+          )}
+
+          {isSuperAdmin && (
+            <div style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '0.75rem',
+              color: '#64748b',
+              fontWeight: 600,
+              padding: '0.35rem 0.65rem',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '6px'
+            }}>
+              Super Admin: View Only (Managed by Group Admin)
+            </div>
           )}
         </div>
 

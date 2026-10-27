@@ -69,12 +69,12 @@ function recordAudit(userId, userName, role, action, details) {
   }
 }
 
-// Helper: Check if a user has an active non-completed loan
-function checkUserActiveLoan(userId) {
+// Helper: Get a user's active non-completed loans (up to 3 allowed running at a time)
+function getUserActiveLoans(userId) {
   const loans = readCollection('loans');
-  const activeLoan = loans.find(l => {
+  return loans.filter(l => {
     if (l.user_id !== userId) return false;
-    if (['REJECTED_GROUP_ADMIN', 'REJECTED_SUPER_ADMIN', 'COMPLETED', 'REJECTED'].includes(l.status)) {
+    if (['REJECTED_GROUP_ADMIN', 'REJECTED_SUPER_ADMIN', 'COMPLETED', 'REJECTED', 'DENIED_BY_USER', 'CANCELLED'].includes(l.status)) {
       return false;
     }
     // Pending review, sanctioned, or disbursed with outstanding balance
@@ -87,8 +87,11 @@ function checkUserActiveLoan(userId) {
     }
     return false;
   });
+}
 
-  return activeLoan || null;
+function checkUserActiveLoan(userId) {
+  const activeLoans = getUserActiveLoans(userId);
+  return activeLoans.length > 0 ? activeLoans[0] : null;
 }
 
 // ----------------- VALIDATION HELPERS -----------------
@@ -370,6 +373,49 @@ app.get('/api/admin/analytics', authenticateToken, requireRole('SUPER_ADMIN'), (
       else upiTotal += (r.amount || 0);
     });
 
+    // Group-wise loan performance metrics
+    const groups = readCollection('groups');
+    const groupBreakdown = groups.map(g => {
+      const gLoans = loans.filter(l => l.group_id === g.id);
+      const totalSanctioned = gLoans
+        .filter(l => ['SANCTIONED', 'DISBURSED', 'APPROVED', 'COMPLETED'].includes(l.status))
+        .reduce((sum, l) => sum + (l.sanctioned_amount || l.amount || 0), 0);
+      const totalRepaid = gLoans.reduce((sum, l) => sum + (l.total_paid || 0), 0);
+      const totalBalance = gLoans
+        .filter(l => l.status === 'DISBURSED')
+        .reduce((sum, l) => sum + Math.max(0, l.outstanding_balance || 0), 0);
+      return {
+        id: g.id,
+        group_name: g.group_name,
+        area: g.area,
+        loanCount: gLoans.length,
+        sanctioned: totalSanctioned,
+        repaid: totalRepaid,
+        balance: totalBalance,
+        recoveryRate: totalSanctioned > 0 ? Math.round((totalRepaid / totalSanctioned) * 100) : 100
+      };
+    });
+
+    // Purpose categorization breakdown
+    const purposeMap = {};
+    loans.forEach(l => {
+      const p = l.purpose || 'Small Business';
+      purposeMap[p] = (purposeMap[p] || 0) + 1;
+    });
+    const purposeBreakdown = Object.entries(purposeMap).map(([name, count]) => ({ name, count }));
+
+    // Monthly repayment trend (last 6 months)
+    const monthMap = {};
+    repayments.forEach(r => {
+      const d = r.payment_date || r.created_at || '2026-10-01';
+      const m = d.slice(0, 7); // YYYY-MM
+      monthMap[m] = (monthMap[m] || 0) + (r.amount || 0);
+    });
+    const repaymentTrends = Object.entries(monthMap)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-6)
+      .map(([month, amount]) => ({ month, amount }));
+
     res.json({
       weeklyVsMonthly: {
         weekly: weeklyLoansCount,
@@ -378,7 +424,10 @@ app.get('/api/admin/analytics', authenticateToken, requireRole('SUPER_ADMIN'), (
       cashVsUpi: {
         cash: cashTotal,
         upi: upiTotal
-      }
+      },
+      groupBreakdown,
+      purposeBreakdown,
+      repaymentTrends
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch analytics.' });
@@ -659,12 +708,14 @@ app.get('/api/admin/loans', authenticateToken, requireRole('SUPER_ADMIN'), (req,
     const mapped = loans.map(l => {
       const member = users.find(u => u.id === l.user_id);
       const group = groups.find(g => g.id === l.group_id);
+      const userActiveLoans = getUserActiveLoans(l.user_id);
       return {
         ...l,
         member_name: member ? member.name : 'Unknown',
         member_email: member ? member.email : 'Unknown',
         member_phone: member ? member.phone : 'Unknown',
-        group_name: group ? group.group_name : 'Unknown'
+        group_name: group ? group.group_name : 'Unknown',
+        user_active_loans_count: userActiveLoans.length
       };
     });
     res.json(mapped);
@@ -928,6 +979,55 @@ app.post('/api/admin/announcements', authenticateToken, requireRole('SUPER_ADMIN
   }
 });
 
+// Update / Edit announcement (Super Admin only)
+app.put('/api/admin/announcements/:id', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, message } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required.' });
+    }
+
+    const announcements = readCollection('announcements');
+    const index = announcements.findIndex(a => a.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Announcement not found.' });
+    }
+
+    announcements[index].title = title.trim();
+    announcements[index].message = message.trim();
+    announcements[index].updated_at = new Date().toISOString();
+    announcements[index].updated_by = req.user.name;
+
+    writeCollection('announcements', announcements);
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'UPDATE_ANNOUNCEMENT', `Updated announcement: ${title}`);
+
+    res.json({ message: 'Announcement updated successfully.', announcement: announcements[index] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update announcement.' });
+  }
+});
+
+// Delete announcement (Super Admin only)
+app.delete('/api/admin/announcements/:id', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const announcements = readCollection('announcements');
+    const index = announcements.findIndex(a => a.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Announcement not found.' });
+    }
+
+    const deleted = announcements.splice(index, 1)[0];
+    writeCollection('announcements', announcements);
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'DELETE_ANNOUNCEMENT', `Deleted announcement: ${deleted.title}`);
+
+    res.json({ message: 'Announcement deleted successfully.', id });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete announcement.' });
+  }
+});
+
 // Email outbox logs
 app.get('/api/admin/email-logs', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
   try {
@@ -988,6 +1088,91 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
   }
 });
 
+// Group Admin Analytics (Group-specific innovative chart metrics)
+app.get('/api/group-admin/analytics', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
+  try {
+    const loans = readCollection('loans');
+    const repayments = readCollection('repayments');
+    const groups = readCollection('groups');
+    const users = readCollection('users');
+
+    let targetGroupId = req.user.group_id;
+    if (req.user.role === 'GROUP_ADMIN') {
+      const g = groups.find(grp => grp.group_admin_id === req.user.id || grp.id === req.user.group_id);
+      if (g) targetGroupId = g.id;
+    }
+
+    const groupLoans = loans.filter(l => l.group_id === targetGroupId);
+    const groupMembers = users.filter(u => u.group_id === targetGroupId && u.status === 'APPROVED');
+
+    // 1. Loan Status Distribution
+    const statusCounts = {
+      APPROVED: 0,
+      DISBURSED: 0,
+      COMPLETED: 0,
+      PENDING_GROUP_ADMIN: 0,
+      PENDING_SUPER_ADMIN: 0,
+      REJECTED: 0
+    };
+    groupLoans.forEach(l => {
+      if (statusCounts[l.status] !== undefined) statusCounts[l.status]++;
+      else if (l.status.includes('REJECT') || l.status === 'DENIED_BY_USER') statusCounts.REJECTED++;
+      else statusCounts.PENDING_SUPER_ADMIN++;
+    });
+
+    // 2. Member Repayment Leaderboard / Progress
+    const memberRepayments = groupMembers.map(m => {
+      const mLoans = groupLoans.filter(l => l.user_id === m.id);
+      const totalSanctioned = mLoans.reduce((sum, l) => sum + (l.sanctioned_amount || l.amount || 0), 0);
+      const totalPaid = mLoans.reduce((sum, l) => sum + (l.total_paid || 0), 0);
+      const activeBalance = mLoans
+        .filter(l => l.status === 'DISBURSED')
+        .reduce((sum, l) => sum + Math.max(0, l.outstanding_balance || 0), 0);
+      const activeRunningLoans = mLoans.filter(l => ['PENDING_GROUP_ADMIN', 'PENDING_SUPER_ADMIN', 'SANCTIONED', 'DISBURSED'].includes(l.status)).length;
+      return {
+        memberId: m.id,
+        memberName: m.name,
+        totalSanctioned,
+        totalPaid,
+        activeBalance,
+        activeRunningLoans,
+        repaymentRate: totalSanctioned > 0 ? Math.round((totalPaid / totalSanctioned) * 100) : 100
+      };
+    });
+
+    // 3. Weekly vs Monthly Ratio for Group
+    let weekly = 0;
+    let monthly = 0;
+    groupLoans.forEach(l => {
+      if (l.repayment_frequency === 'MONTHLY') monthly++;
+      else weekly++;
+    });
+
+    // 4. Cash vs UPI collected in Group
+    const groupLoanIds = groupLoans.map(l => l.id);
+    const groupReceipts = repayments.filter(r => groupLoanIds.includes(r.loan_id));
+    let groupCash = 0;
+    let groupUpi = 0;
+    groupReceipts.forEach(r => {
+      if (r.payment_method === 'CASH') groupCash += (r.amount || 0);
+      else groupUpi += (r.amount || 0);
+    });
+
+    res.json({
+      totalMembers: groupMembers.length,
+      totalLoansCount: groupLoans.length,
+      statusCounts,
+      memberRepayments,
+      weeklyVsMonthly: { weekly, monthly },
+      cashVsUpi: { cash: groupCash, upi: groupUpi },
+      totalCollected: groupCash + groupUpi,
+      totalSanctioned: groupLoans.reduce((sum, l) => sum + (l.sanctioned_amount || l.amount || 0), 0)
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch group analytics.' });
+  }
+});
+
 // Group loans for Group Admin
 app.get('/api/group-admin/loans', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
   try {
@@ -1005,11 +1190,13 @@ app.get('/api/group-admin/loans', authenticateToken, requireRole('GROUP_ADMIN', 
       .filter(l => l.group_id === targetGroupId)
       .map(l => {
         const member = users.find(u => u.id === l.user_id);
+        const userActiveLoans = getUserActiveLoans(l.user_id);
         return {
           ...l,
           member_name: member ? member.name : 'Unknown',
           member_email: member ? member.email : 'Unknown',
-          member_phone: member ? member.phone : 'Unknown'
+          member_phone: member ? member.phone : 'Unknown',
+          user_active_loans_count: userActiveLoans.length
         };
       });
 
@@ -1152,8 +1339,9 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
       .filter(l => l.user_id === currentUser.id)
       .sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
 
-    // Active loan check
-    const activeLoan = checkUserActiveLoan(currentUser.id);
+    // Active loans check (up to 3 running loans allowed)
+    const activeLoans = getUserActiveLoans(currentUser.id);
+    const activeLoan = activeLoans.length > 0 ? activeLoans[0] : null;
 
     res.json({
       user: {
@@ -1171,6 +1359,8 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
       fellowMembers,
       loans: userLoans,
       activeLoan,
+      activeLoans,
+      activeLoansCount: activeLoans.length,
       announcements
     });
   } catch (err) {
@@ -1178,35 +1368,109 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
   }
 });
 
-// Check Active Loan status specifically
+// Check Active Loan status specifically (returns count and list, up to 3 loans allowed)
 app.get('/api/member/active-loan-check', authenticateToken, (req, res) => {
   try {
-    const activeLoan = checkUserActiveLoan(req.user.id);
-    if (activeLoan) {
-      return res.json({
-        hasActiveLoan: true,
-        message: 'Your previous loan is still active. Please complete the repayment of your existing loan before applying for another loan. You can track your remaining balance and next repayment date from the My Loans section.',
-        loan: {
-          id: activeLoan.id,
-          loan_account_number: activeLoan.loan_account_number || activeLoan.id,
-          amount: activeLoan.amount,
-          sanctioned_amount: activeLoan.sanctioned_amount || activeLoan.amount,
-          total_paid: activeLoan.total_paid || 0,
-          outstanding_balance: activeLoan.outstanding_balance !== undefined ? activeLoan.outstanding_balance : activeLoan.amount,
-          repayment_frequency: activeLoan.repayment_frequency || 'WEEKLY',
-          next_due_date: activeLoan.next_due_date || 'Upcoming',
-          status: activeLoan.status
-        }
-      });
-    }
+    const activeLoans = getUserActiveLoans(req.user.id);
+    const count = activeLoans.length;
 
-    res.json({ hasActiveLoan: false });
+    res.json({
+      hasActiveLoan: count > 0,
+      activeLoansCount: count,
+      maxAllowedLoans: 3,
+      canApplyMore: count < 3,
+      message: count >= 3
+        ? 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for a new loan.'
+        : count > 0
+          ? `You have ${count} existing active loan(s). You can have up to 3 loans running at a time.`
+          : 'You currently have no active loans.',
+      activeLoans: activeLoans.map(l => ({
+        id: l.id,
+        loan_account_number: l.loan_account_number || l.application_id || l.id,
+        amount: l.amount,
+        sanctioned_amount: l.sanctioned_amount || l.amount,
+        total_paid: l.total_paid || 0,
+        outstanding_balance: l.outstanding_balance !== undefined ? l.outstanding_balance : l.amount,
+        repayment_frequency: l.repayment_frequency || 'WEEKLY',
+        next_due_date: l.next_due_date || 'Upcoming',
+        status: l.status
+      })),
+      loan: activeLoans[0] || null
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to check active loan status.' });
   }
 });
 
-// STEP 1: Apply for Loan (with strict Active-Loan Prevention & Concurrency Protection)
+// User Deny / Cancel Loan (Allowed only if not yet approved/sanctioned by Super Admin)
+app.post('/api/member/loans/:id/deny', authenticateToken, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Cancelled by applicant' } = req.body;
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    if (loan.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied: You can only cancel your own loan request.' });
+    }
+
+    // Business Rule: User can deny only if Super Admin has NOT approved/sanctioned/disbursed it yet
+    const superAdminApprovedStatuses = ['SANCTIONED', 'DISBURSED', 'APPROVED', 'COMPLETED'];
+    if (superAdminApprovedStatuses.includes(loan.status)) {
+      return res.status(400).json({
+        error: 'Cannot deny or cancel this loan because it has already been approved / sanctioned by Super Admin.'
+      });
+    }
+
+    if (['REJECTED_GROUP_ADMIN', 'REJECTED_SUPER_ADMIN', 'DENIED_BY_USER', 'CANCELLED'].includes(loan.status)) {
+      return res.status(400).json({ error: `Loan is already in status ${loan.status}.` });
+    }
+
+    loan.status = 'DENIED_BY_USER';
+    loan.denied_reason = reason;
+    loan.denied_at = new Date().toISOString();
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'DENIED_BY_USER',
+      note: `Application denied/cancelled by user. Reason: ${reason}`,
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    // Notify Group Admin
+    const groups = readCollection('groups');
+    const grp = groups.find(g => g.id === loan.group_id);
+    if (grp && grp.group_admin_id) {
+      createNotification(
+        grp.group_admin_id,
+        'LOAN_CANCELLED_BY_USER',
+        'Loan Cancelled by User | பயனர் கடனை ரத்து செய்தார்',
+        `${req.user.name} has cancelled/denied their loan application of ₹${loan.amount}.`,
+        loan.id
+      );
+    }
+
+    recordAudit(req.user.id, req.user.name, req.user.role, 'DENY_LOAN', `User cancelled loan ${loan.application_id || loan.id}`);
+
+    res.json({
+      message: 'Your loan request has been successfully cancelled.',
+      loan
+    });
+  } catch (err) {
+    console.error('Error denying loan:', err);
+    res.status(500).json({ error: 'Failed to cancel loan request.' });
+  }
+});
+
+// STEP 1: Apply for Loan (allowing up to 3 active loans running)
 app.post('/api/member/loans', authenticateToken, (req, res) => {
   try {
     const {
@@ -1236,18 +1500,13 @@ app.post('/api/member/loans', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'You must be allocated to an SHG group before submitting a loan request.' });
     }
 
-    // MANDATORY BUSINESS RULE: Prevent a second loan while a previous loan is active
-    const activeLoan = checkUserActiveLoan(currentUser.id);
-    if (activeLoan) {
+    // BUSINESS RULE: A user can get up to 3 loans running at a time
+    const activeLoans = getUserActiveLoans(currentUser.id);
+    if (activeLoans.length >= 3) {
       return res.status(400).json({
-        error: 'Your previous loan is still active. Please complete the repayment of your existing loan before applying for another loan. You can track your remaining balance and next repayment date from the My Loans section.',
-        activeLoan: {
-          id: activeLoan.id,
-          loan_account_number: activeLoan.loan_account_number || activeLoan.id,
-          amount: activeLoan.amount,
-          outstanding_balance: activeLoan.outstanding_balance !== undefined ? activeLoan.outstanding_balance : activeLoan.amount,
-          status: activeLoan.status
-        }
+        error: 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for another loan.',
+        activeLoansCount: activeLoans.length,
+        maxAllowed: 3
       });
     }
 
@@ -1382,11 +1641,12 @@ app.post('/api/group-admin/loans/apply', authenticateToken, requireRole('GROUP_A
       return res.status(400).json({ error: 'You must be associated with an SHG group.' });
     }
 
-    const activeLoan = checkUserActiveLoan(currentUser.id);
-    if (activeLoan) {
+    const activeLoans = getUserActiveLoans(currentUser.id);
+    if (activeLoans.length >= 3) {
       return res.status(400).json({
-        error: 'You already have an active loan. Please complete its repayment before applying for another loan.',
-        activeLoan
+        error: 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for another loan.',
+        activeLoansCount: activeLoans.length,
+        maxAllowed: 3
       });
     }
 
@@ -1483,8 +1743,8 @@ app.post('/api/group-admin/loans/apply', authenticateToken, requireRole('GROUP_A
 
 // ----------------- REPAYMENT & LEDGER ROUTES -----------------
 
-// Record Repayment (by Group Admin or Super Admin)
-app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), async (req, res) => {
+// Record Repayment (by Group Admin - Super Admin can view only)
+app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN'), async (req, res) => {
   try {
     const {
       loan_id,

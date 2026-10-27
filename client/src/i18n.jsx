@@ -79,9 +79,14 @@ const translations = {
     submit_application: 'Submit Loan Application',
     calculating: 'Calculating terms...',
 
-    // Active Loan Rule
-    active_loan_title: 'Previous Loan is Currently Active',
-    active_loan_msg: 'Your previous loan is still active. Please complete the repayment of your existing loan before applying for another loan. You can track your remaining balance and next repayment date from the My Loans section.',
+    // Active Loan Rule (Up to 3 loans allowed at a time)
+    active_loan_title: 'Existing Active Loans Information',
+    active_loan_msg: 'Gentle Notice: You have an existing loan running. Members can hold up to 3 active loans concurrently. If you need additional funds, you can apply (max 3 running at a time).',
+    active_loan_max_reached: 'Maximum Running Loans Reached (3/3): You currently have 3 running loans. Please complete repayment of at least one loan before applying for a new one.',
+    active_loans_running: 'Active Loans Running',
+    deny_loan_btn: 'Deny / Cancel Loan',
+    deny_loan_confirm: 'Are you sure you want to cancel / deny this loan application? This action cannot be undone.',
+    cannot_deny_approved: 'Cannot deny: This loan has already been approved / sanctioned by Super Admin.',
     loan_acc_no: 'Loan Account Number',
     sanctioned_amount: 'Sanctioned Amount',
     total_repaid: 'Total Repaid So Far',
@@ -217,9 +222,14 @@ const translations = {
     submit_application: 'கடன் விண்ணப்பத்தை சமர்ப்பிக்கவும்',
     calculating: 'கணக்கிடப்படுகிறது...',
 
-    // Active Loan Rule
-    active_loan_title: 'முந்தைய கடன் இன்னும் செயலில் உள்ளது',
-    active_loan_msg: 'உங்கள் முந்தைய கடன் இன்னும் செயலில் உள்ளது. புதிய கடனுக்கு விண்ணப்பிக்கும் முன் முந்தைய கடனை முழுமையாக திருப்பிச் செலுத்துங்கள். மீதமுள்ள நிலுவைத் தொகையை நீங்கள் எனது கடன்கள் பிரிவில் பார்க்கலாம்.',
+    // Active Loan Rule (Up to 3 loans allowed at a time)
+    active_loan_title: 'செயலில் உள்ள கடன்கள் பற்றிய தகவல்',
+    active_loan_msg: 'கனிவான தகவல்: உங்களுக்கு ஏற்கனவே நடைமுறையில் கடன் உள்ளது. ஒரு பயனர் ஒரே நேரத்தில் அதிகபட்சமாக 3 கடன்கள் வரை பெற்றுக் கொள்ளலாம்.',
+    active_loan_max_reached: 'அதிகபட்ச வரம்பு எட்டப்பட்டது (3/3 கடன்கள்): உங்களிடம் தற்போது 3 கடன்கள் செயலில் உள்ளன. புதிய கடனுக்கு விண்ணப்பிக்க குறைந்தது ஒரு கடனை முழுமையாக திருப்பிச் செலுத்துங்கள்.',
+    active_loans_running: 'செயலில் உள்ள கடன்கள்',
+    deny_loan_btn: 'கடனை ரத்து செய் (Deny)',
+    deny_loan_confirm: 'இந்தக் கடன் விண்ணப்பத்தை ரத்து செய்ய விரும்புகிறீர்களா?',
+    cannot_deny_approved: 'ரத்து செய்ய முடியாது: முதன்மை நிர்வாகி (Super Admin) இந்த கடனை ஏற்கனவே அனுமதித்து விட்டார்.',
     loan_acc_no: 'கடன் கணக்கு எண்',
     sanctioned_amount: 'அனுமதிக்கப்பட்ட தொகை',
     total_repaid: 'இதுவரை செலுத்திய தொகை',

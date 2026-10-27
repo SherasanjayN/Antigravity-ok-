@@ -52,9 +52,18 @@ export default function StatusBadge({ status, type = 'status' }) {
         </span>
       );
     case 'REJECTED':
+    case 'REJECTED_GROUP_ADMIN':
+    case 'REJECTED_SUPER_ADMIN':
       return (
         <span className="badge badge-rejected">
           <XCircle size={12} /> Declined
+        </span>
+      );
+    case 'DENIED_BY_USER':
+    case 'CANCELLED':
+      return (
+        <span className="badge" style={{ backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+          <XCircle size={12} /> Denied by User
         </span>
       );
     default:

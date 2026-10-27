@@ -96,6 +96,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
+    updateAnnouncement: (id, payload) => request(`/admin/announcements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }),
+    deleteAnnouncement: (id) => request(`/admin/announcements/${id}`, {
+      method: 'DELETE'
+    }),
     getEmailLogs: () => request('/admin/email-logs'),
     retryEmail: (emailId) => request(`/admin/emails/${emailId}/retry`, {
       method: 'POST'
@@ -120,7 +127,8 @@ export const api = {
     applyLoan: (payload) => request('/group-admin/loans/apply', {
       method: 'POST',
       body: JSON.stringify(payload)
-    })
+    }),
+    getAnalytics: () => request('/group-admin/analytics')
   },
 
   // Member (User)
@@ -130,6 +138,10 @@ export const api = {
     applyLoan: (payload) => request('/member/loans', {
       method: 'POST',
       body: JSON.stringify(payload)
+    }),
+    denyLoan: (loanId, reason) => request(`/member/loans/${loanId}/deny`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
     })
   },
 

@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "450ec575-bbe8-4521-8757-aea08e220faf",
+    "user_id": "super-admin-01",
+    "user_name": "Super Admin",
+    "role": "SUPER_ADMIN",
+    "action": "APPROVE_USER",
+    "details": "Approved user kavitha into group Mylapore Sakthi Kuzhu",
+    "created_at": "2026-10-27T19:59:31.171Z"
+  }
+]

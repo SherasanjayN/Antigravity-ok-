@@ -394,7 +394,7 @@ export default function SheAiAssistant({ currentUser }) {
 
   return (
     <>
-      {/* Floating Trigger Button - Positioned at Top */}
+      {/* Floating Trigger Button - Small Unique Symbol */}
       {!isOpen && (
         <button
           type="button"
@@ -404,51 +404,73 @@ export default function SheAiAssistant({ currentUser }) {
             top: '80px',
             right: '24px',
             zIndex: 1100,
-            backgroundColor: '#047857',
+            background: 'linear-gradient(135deg, #065f46 0%, #047857 50%, #0d9488 100%)',
             color: '#ffffff',
-            border: '2px solid rgba(255,255,255,0.4)',
-            borderRadius: '50px',
-            padding: '0.65rem 1.25rem',
+            border: '2px solid rgba(255, 255, 255, 0.85)',
+            borderRadius: '50%',
+            width: '46px',
+            height: '46px',
+            padding: 0,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            gap: '0.65rem',
-            boxShadow: '0 10px 25px -5px rgba(4, 120, 87, 0.4), 0 8px 10px -6px rgba(4, 120, 87, 0.2)',
+            justifyContent: 'center',
+            boxShadow: '0 8px 20px -3px rgba(4, 120, 87, 0.5), 0 4px 8px -2px rgba(13, 148, 136, 0.3)',
             cursor: 'pointer',
-            fontWeight: 800,
-            fontSize: '0.95rem',
-            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            transition: 'all 0.22s ease'
           }}
           className="she-ai-trigger"
-          title={lang === 'ta' ? 'SHE AI உதவியாளரை திறக்கவும்' : 'Open SHE AI Assistant'}
+          title={lang === 'ta' ? 'SHE AI உதவியாளரைத் திறக்கவும்' : 'Open SHE AI Assistant'}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.12) translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 12px 24px -4px rgba(4, 120, 87, 0.65)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1) translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 20px -3px rgba(4, 120, 87, 0.5), 0 4px 8px -2px rgba(13, 148, 136, 0.3)';
+          }}
         >
-          {/* Custom Logo: SHE with small Ai at top */}
+          {/* Unique Micro Symbol */}
           <div style={{
-            position: 'relative',
-            backgroundColor: '#064e3b',
-            color: '#a7f3d0',
-            borderRadius: '10px',
-            padding: '2px 8px 3px 8px',
-            display: 'inline-flex',
-            alignItems: 'baseline',
-            fontWeight: 900,
-            letterSpacing: '0.04em',
-            border: '1px solid #10b981'
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            lineHeight: 1
           }}>
-            <span style={{ fontSize: '1rem', color: '#ffffff' }}>SHE</span>
-            <sup style={{
-              fontSize: '0.62rem',
-              color: '#34d399',
-              fontWeight: 800,
-              marginLeft: '2px',
-              top: '-0.45em'
+            <Sparkles size={13} color="#a7f3d0" style={{ marginBottom: '1px' }} />
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              fontWeight: 900,
+              fontSize: '0.74rem',
+              letterSpacing: '0.01em',
+              color: '#ffffff'
             }}>
-              Ai
-            </sup>
+              <span>SHE</span>
+              <span style={{
+                fontSize: '0.48rem',
+                color: '#6ee7b7',
+                fontWeight: 800,
+                marginLeft: '1px'
+              }}>
+                ai
+              </span>
+            </div>
           </div>
 
-          <span style={{ fontWeight: 700 }}>
-            {lang === 'ta' ? 'உதவியாளர்' : 'Assistant'}
-          </span>
+          {/* Active Status Pulse Dot */}
+          <span style={{
+            position: 'absolute',
+            top: '2px',
+            right: '2px',
+            width: '9px',
+            height: '9px',
+            borderRadius: '50%',
+            backgroundColor: '#10b981',
+            border: '2px solid #ffffff',
+            boxShadow: '0 0 6px #10b981'
+          }} />
         </button>
       )}
 

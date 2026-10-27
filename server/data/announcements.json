@@ -1,5 +1,12 @@
 [
   {
+    "id": "92972818-fc5d-420d-9930-d7d2c2c44e45",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "created_by": "Super Admin",
+    "created_at": "2026-10-27T19:59:50.999Z"
+  },
+  {
     "id": "1df4dc2d-e250-4608-8f04-0ad7776dfcd6",
     "title": "Group meeting",
     "message": "meeting",
@@ -12,5 +19,19 @@
     "message": "Greetings to all members! Our platform enables Self-Help Group empowerment, financial mutual assistance, real-time group communication, and transparent loan approval workflows.",
     "created_by": "Super Admin",
     "created_at": "2026-10-27T06:40:05.651Z"
+  },
+  {
+    "id": "ann_1",
+    "title": "Monthly Savings & Group Meeting Scheduled",
+    "message": "All Magalir Kuzhu members are requested to complete monthly savings contribution before the 10th of every month. The general meeting will be hosted on coming Saturday.",
+    "author_name": "Sanjay N (Super Admin)",
+    "created_at": "2026-10-25T06:42:58.707Z"
+  },
+  {
+    "id": "ann_2",
+    "title": "Micro-Loan Limit Cap Reminder",
+    "message": "Members can apply for emergency loans up to ₹10,000 with 3-tier verification. Disbursals are processed immediately upon Super Admin final sanction.",
+    "author_name": "Sanjay N (Super Admin)",
+    "created_at": "2026-10-26T06:42:58.707Z"
   }
 ]

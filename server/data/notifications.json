@@ -1,1 +1,102 @@
-[]
+[
+  {
+    "id": "0c3b901a-2323-47c9-b02b-8640b29fc616",
+    "user_id": "f51819ed-0a21-4eb9-ae1b-b2b61a537ee5",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.024Z"
+  },
+  {
+    "id": "9069eaa8-388a-4bd0-bede-4a0f22ec4d87",
+    "user_id": "usr_1793121557824_p738",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.022Z"
+  },
+  {
+    "id": "81c3a1f6-c185-41bf-b9d8-b69bbabe3b81",
+    "user_id": "usr_ga_2",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.019Z"
+  },
+  {
+    "id": "d9de0fbc-058f-4e64-ba1f-3e993afaac11",
+    "user_id": "usr_mem_1",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.017Z"
+  },
+  {
+    "id": "268f86ed-e850-450d-8d2a-75137f670b85",
+    "user_id": "usr_ga_1",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.014Z"
+  },
+  {
+    "id": "6c8303b3-cde3-4d18-9e9b-f7a089e22761",
+    "user_id": "db449fdc-9bb7-4dc7-b63a-a0dcd8f079a6",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.011Z"
+  },
+  {
+    "id": "20a3ef07-108b-4c39-8eb4-49368b26fc98",
+    "user_id": "ed4ef7e0-ce78-4c39-82a9-73ef1d5d27a0",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.008Z"
+  },
+  {
+    "id": "7b99b9ff-b8b0-405e-a6fc-f93e06efbfef",
+    "user_id": "2df2e987-86b8-4873-8ac7-ab8666d52733",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:51.005Z"
+  },
+  {
+    "id": "6f5ae483-f5f2-469f-a560-99958a1362a6",
+    "user_id": "super-admin-01",
+    "type": "ANNOUNCEMENT",
+    "title": "meeting",
+    "message": "meeting at 6pm",
+    "related_loan_id": null,
+    "is_read": true,
+    "created_at": "2026-10-27T19:59:51.002Z"
+  },
+  {
+    "id": "32a63ba7-6447-4881-b8b9-efb7c59dcede",
+    "user_id": "f51819ed-0a21-4eb9-ae1b-b2b61a537ee5",
+    "type": "REGISTRATION_APPROVED",
+    "title": "Registration Approved! | பதிவு அனுமதிக்கப்பட்டது",
+    "message": "Welcome to Magalir Kuzhu! You have been allocated to Mylapore Sakthi Kuzhu.",
+    "related_loan_id": null,
+    "is_read": false,
+    "created_at": "2026-10-27T19:59:31.168Z"
+  }
+]

@@ -15,7 +15,10 @@ import {
   CreditCard,
   AlertCircle,
   Calculator,
-  Plus
+  Plus,
+  BarChart3,
+  PieChart,
+  TrendingUp
 } from 'lucide-react';
 import { api } from '../../services/api';
 import GroupChat from '../GroupChat';
@@ -32,6 +35,7 @@ export default function GroupAdminDashboard({ currentUser }) {
   const [groupData, setGroupData] = useState(null);
   const [loans, setLoans] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [groupAnalytics, setGroupAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -108,14 +112,16 @@ export default function GroupAdminDashboard({ currentUser }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [gData, lData, aData] = await Promise.all([
+      const [gData, lData, aData, gaData] = await Promise.all([
         api.groupAdmin.getMyGroup(),
         api.groupAdmin.getLoans(),
-        api.announcements.getAll()
+        api.announcements.getAll(),
+        api.groupAdmin.getAnalytics().catch(() => null)
       ]);
       setGroupData(gData);
       setLoans(lData);
       setAnnouncements(aData);
+      if (gaData) setGroupAnalytics(gaData);
       setError('');
     } catch (err) {
       setError(err.message || 'Failed to load Group Admin workspace.');
@@ -247,6 +253,20 @@ export default function GroupAdminDashboard({ currentUser }) {
         >
           <Users size={18} color={activeTab === 'members' ? '#047857' : 'var(--text-muted)'} />
           <span>{lang === 'ta' ? 'உறுப்பினர்கள்' : 'Group Members'} ({members.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('analytics')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-sm)', border: 'none',
+            background: activeTab === 'analytics' ? '#ecfdf5' : 'transparent',
+            color: activeTab === 'analytics' ? '#065f46' : 'var(--text-main)',
+            fontWeight: activeTab === 'analytics' ? 700 : 500, cursor: 'pointer', textAlign: 'left'
+          }}
+        >
+          <BarChart3 size={18} color={activeTab === 'analytics' ? '#047857' : 'var(--text-muted)'} />
+          <span>{lang === 'ta' ? 'குழு பகுப்பாய்வு & வரைபடங்கள்' : 'Group Analytics & Charts'}</span>
         </button>
 
         <button
@@ -386,6 +406,7 @@ export default function GroupAdminDashboard({ currentUser }) {
                         <th style={{ padding: '10px 14px' }}>Amount</th>
                         <th style={{ padding: '10px 14px' }}>Mode</th>
                         <th style={{ padding: '10px 14px' }}>Repaid / Balance</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center' }}>Running Loans</th>
                         <th style={{ padding: '10px 14px' }}>Status</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right' }}>Actions</th>
                       </tr>
@@ -425,6 +446,16 @@ export default function GroupAdminDashboard({ currentUser }) {
                             ) : (
                               <span style={{ color: 'var(--text-muted)' }}>-</span>
                             )}
+                          </td>
+                          <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                            <span style={{
+                              fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '12px',
+                              backgroundColor: (loan.user_active_loans_count || 1) >= 3 ? '#fee2e2' : '#f0fdf4',
+                              color: (loan.user_active_loans_count || 1) >= 3 ? '#b91c1c' : '#15803d',
+                              border: (loan.user_active_loans_count || 1) >= 3 ? '1px solid #fca5a5' : '1px solid #bbf7d0'
+                            }}>
+                              {loan.user_active_loans_count || 1}/3 Active
+                            </span>
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <StatusBadge status={loan.status} type="loan" />
@@ -524,7 +555,214 @@ export default function GroupAdminDashboard({ currentUser }) {
           </div>
         )}
 
-        {/* TAB 3: CALCULATOR */}
+        {/* TAB 3: GROUP ANALYTICS & INNOVATIVE CHARTS */}
+        {activeTab === 'analytics' && (
+          <div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                {lang === 'ta' ? 'குழு நிதி மற்றும் கடன் பகுப்பாய்வு' : 'Group Financial & Loan Analytics'}
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                {lang === 'ta'
+                  ? `குழு: ${group.group_name} - உறுப்பினர்களின் கடன் திரும்ப செலுத்துதல் வீதம், தவணை நிலை மற்றும் வசூல் புள்ளிவிவரங்கள்.`
+                  : `Group: ${group.group_name} - Live visual tracking of member repayment performance, loan status matrix, and collection split.`}
+              </p>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid-4" style={{ marginBottom: '1.5rem' }}>
+              <div className="card" style={{ borderLeft: '4px solid #047857' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', fontWeight: 700 }}>GROUP RECOVERY RATE</span>
+                <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#047857' }}>
+                  {groupAnalytics?.totalSanctioned > 0 ? Math.round((groupAnalytics.totalCollected / groupAnalytics.totalSanctioned) * 100) : 100}%
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>of all sanctioned funds</span>
+              </div>
+
+              <div className="card" style={{ borderLeft: '4px solid #0284c7' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', fontWeight: 700 }}>TOTAL COLLECTED</span>
+                <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0284c7' }}>
+                  ₹{(groupAnalytics?.totalCollected || 0).toLocaleString('en-IN')}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Weekly & Monthly dues</span>
+              </div>
+
+              <div className="card" style={{ borderLeft: '4px solid #7c3aed' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', fontWeight: 700 }}>ACTIVE GROUP MEMBERS</span>
+                <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#7c3aed' }}>
+                  {members.length}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Verified SHG borrowers</span>
+              </div>
+
+              <div className="card" style={{ borderLeft: '4px solid #d97706' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', fontWeight: 700 }}>TOTAL LOANS LOGGED</span>
+                <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#d97706' }}>
+                  {loans.length}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>From this SHG circle</span>
+              </div>
+            </div>
+
+            <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
+              {/* Chart 1: Member Repayment Performance Leaderboard & Recovery */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <TrendingUp size={18} color="#047857" />
+                    <span>Member Repayment Progress & Health</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {groupAnalytics?.memberRepayments && groupAnalytics.memberRepayments.length > 0 ? (
+                    groupAnalytics.memberRepayments.map(m => {
+                      const rate = Math.min(100, Math.max(0, m.repaymentRate || 0));
+                      return (
+                        <div key={m.memberId} style={{ padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                            <div>
+                              <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{m.memberName}</strong>
+                              <span style={{
+                                fontSize: '0.7rem', padding: '1px 6px', borderRadius: '8px', marginLeft: '0.5rem',
+                                backgroundColor: m.activeRunningLoans >= 3 ? '#fee2e2' : '#ecfdf5',
+                                color: m.activeRunningLoans >= 3 ? '#b91c1c' : '#047857',
+                                fontWeight: 700
+                              }}>
+                                {m.activeRunningLoans}/3 Loans Running
+                              </span>
+                            </div>
+                            <span style={{
+                              fontSize: '0.75rem', fontWeight: 800, padding: '2px 8px', borderRadius: '12px',
+                              backgroundColor: rate >= 60 ? '#dcfce7' : '#fef3c7',
+                              color: rate >= 60 ? '#15803d' : '#b45309'
+                            }}>
+                              {rate}% Repaid
+                            </span>
+                          </div>
+
+                          <div style={{ width: '100%', height: '8px', backgroundColor: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${rate}%`,
+                              height: '100%',
+                              background: rate >= 60 ? 'linear-gradient(90deg, #10b981 0%, #047857 100%)' : 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
+                              borderRadius: '4px'
+                            }} />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                            <span>Sanctioned: ₹{m.totalSanctioned.toLocaleString('en-IN')}</span>
+                            <span>Paid: <strong style={{ color: '#15803d' }}>₹{m.totalPaid.toLocaleString('en-IN')}</strong></span>
+                            <span>Balance: <strong style={{ color: '#b45309' }}>₹{m.activeBalance.toLocaleString('en-IN')}</strong></span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                      No member loans currently logged in this group.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Chart 2: Group Loan Status Breakdown & Mode Ratio */}
+              <div className="card">
+                <div className="card-header">
+                  <div className="card-title">
+                    <PieChart size={18} color="#047857" />
+                    <span>Group Loan Pipeline & Collection Channels</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {/* Status Pills */}
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                      Application Status Funnel:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                      <div style={{ backgroundColor: '#fef3c7', padding: '0.65rem', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#92400e', display: 'block', fontWeight: 700 }}>My Review</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#92400e' }}>{pendingReviewLoans.length}</span>
+                      </div>
+                      <div style={{ backgroundColor: '#eff6ff', padding: '0.65rem', borderRadius: '8px', border: '1px solid #bfdbfe', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#1e40af', display: 'block', fontWeight: 700 }}>Super Admin</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e40af' }}>{forwardedLoans.length}</span>
+                      </div>
+                      <div style={{ backgroundColor: '#f0fdf4', padding: '0.65rem', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#166534', display: 'block', fontWeight: 700 }}>Disbursed/Active</span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534' }}>
+                          {loans.filter(l => l.status === 'DISBURSED').length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cash vs UPI in Group */}
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                      Group Collection Method Ratio:
+                    </div>
+                    {(() => {
+                      const c = groupAnalytics?.cashVsUpi?.cash || 0;
+                      const u = groupAnalytics?.cashVsUpi?.upi || 0;
+                      const sum = (c + u) || 1;
+                      const cPct = Math.round((c / sum) * 100);
+                      return (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.35rem' }}>
+                            <span>Cash: <strong>₹{c.toLocaleString('en-IN')}</strong> ({cPct}%)</span>
+                            <span>UPI: <strong>₹{u.toLocaleString('en-IN')}</strong> ({100 - cPct}%)</span>
+                          </div>
+                          <div style={{ width: '100%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
+                            <div style={{ width: `${cPct}%`, backgroundColor: '#10b981' }} title={`Cash: ${cPct}%`} />
+                            <div style={{ width: `${100 - cPct}%`, backgroundColor: '#6366f1' }} title={`UPI: ${100 - cPct}%`} />
+                          </div>
+                          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} /> Cash
+                            </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' }} /> UPI Transfer
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Frequency Ratio */}
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                      Repayment Frequency in Group:
+                    </div>
+                    {(() => {
+                      const w = groupAnalytics?.weeklyVsMonthly?.weekly || 0;
+                      const m = groupAnalytics?.weeklyVsMonthly?.monthly || 0;
+                      const tot = (w + m) || 1;
+                      const wPct = Math.round((w / tot) * 100);
+                      return (
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '0.35rem' }}>
+                            <span>Weekly: <strong>{w}</strong> ({wPct}%)</span>
+                            <span>Monthly: <strong>{m}</strong> ({100 - wPct}%)</span>
+                          </div>
+                          <div style={{ width: '100%', height: '12px', backgroundColor: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
+                            <div style={{ width: `${wPct}%`, backgroundColor: '#047857' }} />
+                            <div style={{ width: `${100 - wPct}%`, backgroundColor: '#0284c7' }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: CALCULATOR */}
         {activeTab === 'calculator' && (
           <div className="card">
             <LoanCalculatorModal isEmbedded={true} />

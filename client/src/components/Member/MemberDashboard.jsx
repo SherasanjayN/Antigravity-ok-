@@ -55,6 +55,11 @@ export default function MemberDashboard({ currentUser }) {
   // Selected Loan for Repayment Ledger Modal
   const [ledgerLoanId, setLedgerLoanId] = useState(null);
 
+  // Deny modal / state
+  const [denyingLoanId, setDenyingLoanId] = useState(null);
+  const [denyReason, setDenyReason] = useState('');
+  const [submittingDeny, setSubmittingDeny] = useState(false);
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -71,6 +76,24 @@ export default function MemberDashboard({ currentUser }) {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleDenyLoan = async (loanId) => {
+    if (!window.confirm(t('deny_loan_confirm') || 'Are you sure you want to cancel / deny this loan application?')) {
+      return;
+    }
+    setSubmittingDeny(true);
+    try {
+      const res = await api.member.denyLoan(loanId, denyReason || 'Cancelled by member');
+      setLoanSuccessMsg(res.message || 'Loan application cancelled successfully.');
+      setDenyingLoanId(null);
+      setDenyReason('');
+      await loadData();
+    } catch (err) {
+      alert(err.message || 'Failed to cancel loan application.');
+    } finally {
+      setSubmittingDeny(false);
+    }
+  };
 
   const handleApplyLoan = async (e) => {
     e.preventDefault();
@@ -132,8 +155,11 @@ export default function MemberDashboard({ currentUser }) {
     );
   }
 
-  const { group, groupAdmin, fellowMembers, loans = [], activeLoan, announcements = [] } = dashboardData || {};
-  const hasActiveLoan = !!activeLoan;
+  const { group, groupAdmin, fellowMembers, loans = [], activeLoan, activeLoans = [], activeLoansCount = 0, announcements = [] } = dashboardData || {};
+  const effectiveActiveLoans = activeLoans.length > 0 ? activeLoans : (activeLoan ? [activeLoan] : []);
+  const activeCount = effectiveActiveLoans.length;
+  const hasMaxActiveLoans = activeCount >= 3;
+  const hasAnyActiveLoan = activeCount > 0;
 
   return (
     <div className="main-layout">
@@ -249,78 +275,116 @@ export default function MemberDashboard({ currentUser }) {
           </div>
         )}
 
-        {/* ACTIVE LOAN GENTLE WARNING CARD (Mandatory Business Rule) */}
-        {hasActiveLoan && (
+        {/* ACTIVE LOAN GENTLE INFORMATION BANNER (Up to 3 loans allowed at a time) */}
+        {hasAnyActiveLoan && (
           <div style={{
-            backgroundColor: '#fffbeb',
-            border: '1.5px solid #fde68a',
-            borderLeft: '5px solid #d97706',
+            backgroundColor: hasMaxActiveLoans ? '#fef2f2' : '#fffbeb',
+            border: hasMaxActiveLoans ? '1.5px solid #fecaca' : '1.5px solid #fde68a',
+            borderLeft: hasMaxActiveLoans ? '5px solid #dc2626' : '5px solid #d97706',
             borderRadius: '10px',
             padding: '1.25rem 1.5rem',
             marginBottom: '1.75rem',
             boxShadow: '0 2px 4px rgba(217, 119, 6, 0.08)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#92400e', marginBottom: '0.5rem' }}>
-              <AlertCircle size={20} />
-              <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
-                {t('active_loan_title')}
-              </h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: hasMaxActiveLoans ? '#991b1b' : '#92400e' }}>
+                <AlertCircle size={20} />
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                  {t('active_loan_title')}
+                </h4>
+              </div>
+              <span style={{
+                fontSize: '0.78rem', fontWeight: 700, padding: '3px 8px', borderRadius: '12px',
+                backgroundColor: hasMaxActiveLoans ? '#fee2e2' : '#fef3c7',
+                color: hasMaxActiveLoans ? '#b91c1c' : '#b45309'
+              }}>
+                {lang === 'ta' ? `செயலில் உள்ள கடன்கள்: ${activeCount}/3` : `Active Running Loans: ${activeCount}/3`}
+              </span>
             </div>
 
-            <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#78350f', lineHeight: 1.5 }}>
-              {t('active_loan_msg')}
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: hasMaxActiveLoans ? '#7f1d1d' : '#78350f', lineHeight: 1.5 }}>
+              {hasMaxActiveLoans ? t('active_loan_max_reached') : t('active_loan_msg')}
             </p>
 
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '8px',
-              padding: '0.85rem 1.25rem',
-              border: '1px solid #fef3c7',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: '0.75rem',
-              alignItems: 'center'
-            }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('loan_acc_no')}</span>
-                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#047857' }}>
-                  {activeLoan.loan_account_number || activeLoan.id}
-                </span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('sanctioned_amount')}</span>
-                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>₹{activeLoan.sanctioned_amount || activeLoan.amount}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('remaining_balance')}</span>
-                <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#b45309' }}>₹{activeLoan.outstanding_balance}</span>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('status_label')}</span>
-                <StatusBadge status={activeLoan.status} type="loan" />
-              </div>
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setLedgerLoanId(activeLoan.id)}
-                  style={{
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '6px',
-                    border: '1px solid #047857',
-                    backgroundColor: '#ecfdf5',
-                    color: '#065f46',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem'
-                  }}
-                >
-                  <FileText size={14} />
-                  <span>{t('view_ledger')}</span>
-                </button>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {effectiveActiveLoans.map((loan, idx) => (
+                <div key={loan.id || idx} style={{
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  padding: '0.85rem 1.25rem',
+                  border: '1px solid #fef3c7',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '0.75rem',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('loan_acc_no')}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#047857' }}>
+                      {loan.loan_account_number || loan.application_id || loan.id.slice(0, 8)}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('sanctioned_amount')}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>₹{loan.sanctioned_amount || loan.amount}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('remaining_balance')}</span>
+                    <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#b45309' }}>₹{loan.outstanding_balance}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.72rem', color: '#78350f', display: 'block' }}>{t('status_label')}</span>
+                    <StatusBadge status={loan.status} type="loan" />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setLedgerLoanId(loan.id)}
+                      style={{
+                        padding: '0.45rem 0.85rem',
+                        borderRadius: '6px',
+                        border: '1px solid #047857',
+                        backgroundColor: '#ecfdf5',
+                        color: '#065f46',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <FileText size={14} />
+                      <span>{t('view_ledger')}</span>
+                    </button>
+
+                    {/* Deny loan button if not yet approved by Super Admin */}
+                    {['PENDING_GROUP_ADMIN', 'PENDING_SUPER_ADMIN'].includes(loan.status) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDenyLoan(loan.id)}
+                        disabled={submittingDeny}
+                        style={{
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: '6px',
+                          border: '1px solid #ef4444',
+                          backgroundColor: '#ffffff',
+                          color: '#dc2626',
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem'
+                        }}
+                      >
+                        <XCircle size={14} />
+                        <span>{t('deny_loan_btn')}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -341,17 +405,17 @@ export default function MemberDashboard({ currentUser }) {
               {group && (
                 <button
                   onClick={() => {
-                    if (hasActiveLoan) return;
+                    if (hasMaxActiveLoans) return;
                     setShowApplyModal(true);
                     setLoanFormError('');
                   }}
-                  disabled={hasActiveLoan}
+                  disabled={hasMaxActiveLoans}
                   className="btn btn-primary"
                   style={{
-                    opacity: hasActiveLoan ? 0.55 : 1,
-                    cursor: hasActiveLoan ? 'not-allowed' : 'pointer'
+                    opacity: hasMaxActiveLoans ? 0.55 : 1,
+                    cursor: hasMaxActiveLoans ? 'not-allowed' : 'pointer'
                   }}
-                  title={hasActiveLoan ? t('active_loan_msg') : t('apply_loan_title')}
+                  title={hasMaxActiveLoans ? t('active_loan_max_reached') : t('apply_loan_title')}
                 >
                   <Plus size={16} />
                   <span>{t('apply_loan_title')}</span>
@@ -503,12 +567,13 @@ export default function MemberDashboard({ currentUser }) {
               {group && (
                 <button
                   onClick={() => {
-                    if (hasActiveLoan) return;
+                    if (hasMaxActiveLoans) return;
                     setShowApplyModal(true);
                   }}
-                  disabled={hasActiveLoan}
+                  disabled={hasMaxActiveLoans}
                   className="btn btn-primary"
-                  style={{ opacity: hasActiveLoan ? 0.5 : 1, cursor: hasActiveLoan ? 'not-allowed' : 'pointer' }}
+                  style={{ opacity: hasMaxActiveLoans ? 0.5 : 1, cursor: hasMaxActiveLoans ? 'not-allowed' : 'pointer' }}
+                  title={hasMaxActiveLoans ? t('active_loan_max_reached') : t('apply_loan_title')}
                 >
                   <Plus size={16} />
                   <span>{t('apply_loan_title')}</span>
@@ -541,7 +606,7 @@ export default function MemberDashboard({ currentUser }) {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <button
                           type="button"
                           onClick={() => setLedgerLoanId(loan.id)}
@@ -551,6 +616,25 @@ export default function MemberDashboard({ currentUser }) {
                           <FileText size={14} />
                           <span>{t('view_ledger')}</span>
                         </button>
+
+                        {/* User can deny loan if Super Admin has NOT approved yet */}
+                        {['PENDING_GROUP_ADMIN', 'PENDING_SUPER_ADMIN'].includes(loan.status) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDenyLoan(loan.id)}
+                            disabled={submittingDeny}
+                            className="btn btn-sm"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600,
+                              backgroundColor: '#ffffff', color: '#dc2626', border: '1px solid #ef4444',
+                              cursor: 'pointer'
+                            }}
+                            title="Cancel / Deny this loan application before Super Admin approval"
+                          >
+                            <XCircle size={14} />
+                            <span>{t('deny_loan_btn')}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 

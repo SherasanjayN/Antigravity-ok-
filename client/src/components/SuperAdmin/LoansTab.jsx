@@ -258,6 +258,7 @@ export default function LoansTab({ onActionComplete }) {
                   <th style={{ padding: '10px 14px' }}>Amount & Terms</th>
                   <th style={{ padding: '10px 14px' }}>Mode</th>
                   <th style={{ padding: '10px 14px' }}>Repaid / Balance</th>
+                  <th style={{ padding: '10px 14px', textAlign: 'center' }}>Running Loans</th>
                   <th style={{ padding: '10px 14px' }}>Status</th>
                   <th style={{ padding: '10px 14px', textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -298,6 +299,16 @@ export default function LoansTab({ onActionComplete }) {
                       ) : (
                         <span style={{ color: 'var(--text-muted)' }}>-</span>
                       )}
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <span style={{
+                        fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '12px',
+                        backgroundColor: (loan.user_active_loans_count || 1) >= 3 ? '#fee2e2' : '#f0fdf4',
+                        color: (loan.user_active_loans_count || 1) >= 3 ? '#b91c1c' : '#15803d',
+                        border: (loan.user_active_loans_count || 1) >= 3 ? '1px solid #fca5a5' : '1px solid #bbf7d0'
+                      }}>
+                        {loan.user_active_loans_count || 1}/3 Active
+                      </span>
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <StatusBadge status={loan.status} type="loan" />
