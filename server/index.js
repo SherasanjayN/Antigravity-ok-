@@ -1259,6 +1259,27 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
         const memberActiveLoans = loans.filter(l => l.user_id === u.id && isLoanActive(l));
         const activeLoan = memberActiveLoans.length > 0 ? memberActiveLoans[0] : null;
 
+        let nextDueDate = activeLoan?.next_due_date || null;
+        let overdueDays = activeLoan?.overdue_days || 0;
+        let fineAmount = activeLoan?.penalty_amount || 0;
+
+        if (activeLoan) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const schedule = activeLoan.repayment_schedule || [];
+          const nextUnpaid = schedule.find(s => s.status !== 'PAID');
+          if (nextUnpaid && nextUnpaid.due_date) {
+            nextDueDate = nextUnpaid.due_date;
+            if (nextDueDate < todayStr) {
+              const diffMs = new Date(todayStr).getTime() - new Date(nextDueDate).getTime();
+              const calcOverdue = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+              if (calcOverdue > overdueDays) {
+                overdueDays = calcOverdue;
+                fineAmount = overdueDays * 50; // ₹50 per overdue day
+              }
+            }
+          }
+        }
+
         return {
           id: u.id,
           name: u.name,
@@ -1278,7 +1299,10 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
             installment_amount: activeLoan.installment_amount,
             outstanding_balance: activeLoan.outstanding_balance,
             repayment_frequency: activeLoan.repayment_frequency,
-            status: activeLoan.status
+            status: activeLoan.status,
+            next_due_date: nextDueDate,
+            overdue_days: overdueDays,
+            fine_amount: fineAmount
           } : null,
           eligibility: {
             eligible: eligibility.eligible,
@@ -2217,10 +2241,31 @@ app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN'), async
     loan.next_due_date = allocation.nextDueDate;
     loan.repayment_schedule = allocation.updatedSchedule;
 
+    // Recalculate loan penalty and overdue status after paying
+    const todayStr = new Date().toISOString().split('T')[0];
+    let remainingOverdueDays = 0;
+    let remainingPenaltyAmount = 0;
+    allocation.updatedSchedule.forEach(inst => {
+      if (inst.status !== 'PAID' && inst.due_date && inst.due_date < todayStr) {
+        const diffMs = new Date(todayStr).getTime() - new Date(inst.due_date).getTime();
+        const oDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        remainingOverdueDays += oDays;
+        remainingPenaltyAmount += (oDays * 50);
+        inst.overdueDays = oDays;
+        inst.penaltyAmount = oDays * 50;
+      } else if (inst.status === 'PAID') {
+        inst.overdueDays = 0;
+      }
+    });
+    loan.overdue_days = remainingOverdueDays;
+    loan.penalty_amount = remainingPenaltyAmount;
+
     const isFullyRepaid = loan.outstanding_balance <= 0.01;
     if (isFullyRepaid) {
       loan.status = 'COMPLETED';
       loan.completed_at = new Date().toISOString();
+      loan.overdue_days = 0;
+      loan.penalty_amount = 0;
     }
 
     // Unique Receipt Number: MK-RCP-YYYYMMDD-XXXX

@@ -533,6 +533,7 @@ export default function GroupAdminDashboard({ currentUser }) {
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Completed Loans</th>
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Repayment Score</th>
                     <th style={{ padding: '10px 14px' }}>Current Balance</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Next Due / Fine</th>
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
@@ -541,6 +542,56 @@ export default function GroupAdminDashboard({ currentUser }) {
                     const score = m.repayment_score !== undefined ? m.repayment_score : 100;
                     const completed = m.completed_loans || 0;
                     const balance = m.remaining_balance || 0;
+
+                    // Next Due & Fine check
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const nextDueDate = m.active_loan?.next_due_date || null;
+                    const overdueDays = m.active_loan?.overdue_days || 0;
+                    const fineAmount = m.active_loan?.fine_amount || (overdueDays * 50);
+
+                    // Check if Collect Pay should be OPEN:
+                    // If no loan or balance is 0 -> not open
+                    // If nextDueDate is today or overdue (nextDueDate <= todayStr) -> open
+                    // If nextDueDate is tomorrow -> open
+                    // If future beyond tomorrow -> locked until due date
+                    let isCollectPayOpen = false;
+                    let dueLabel = '-';
+                    let isOverdue = false;
+                    let isTomorrow = false;
+                    let isToday = false;
+
+                    if (m.active_loan && balance > 0) {
+                      if (!nextDueDate) {
+                        isCollectPayOpen = true;
+                        dueLabel = 'Due Today';
+                      } else {
+                        const todayDate = new Date(todayStr);
+                        const dueDateObj = new Date(nextDueDate);
+                        const diffMs = dueDateObj.getTime() - todayDate.getTime();
+                        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+                        if (diffDays < 0) {
+                          // Past due date: Unpaid overdue, fine accumulating, open for collection!
+                          isCollectPayOpen = true;
+                          isOverdue = true;
+                          dueLabel = `Overdue (${Math.abs(diffDays)}d)`;
+                        } else if (diffDays === 0) {
+                          // Due Today: Open for collection!
+                          isCollectPayOpen = true;
+                          isToday = true;
+                          dueLabel = 'Due Today';
+                        } else if (diffDays === 1) {
+                          // Due Tomorrow: Open for collection as requested!
+                          isCollectPayOpen = true;
+                          isTomorrow = true;
+                          dueLabel = 'Due Tomorrow';
+                        } else {
+                          // Future date (beyond tomorrow): Locked until that paying date arrives
+                          isCollectPayOpen = false;
+                          dueLabel = nextDueDate;
+                        }
+                      }
+                    }
 
                     return (
                       <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -573,33 +624,83 @@ export default function GroupAdminDashboard({ currentUser }) {
                           ₹{balance}
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                          {m.active_loan && m.remaining_balance > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRepayMember(m);
-                                setRepayAmount(m.active_loan.installment_amount ? Math.round(m.active_loan.installment_amount) : 500);
-                                setShowRepayModal(true);
-                              }}
-                              className="btn btn-sm"
-                              style={{
-                                padding: '5px 12px',
-                                fontSize: '0.8rem',
-                                fontWeight: 800,
-                                backgroundColor: '#10b981',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
+                          {m.active_loan && balance > 0 ? (
+                            <div>
+                              <div style={{
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                color: isOverdue ? '#dc2626' : isToday || isTomorrow ? '#047857' : '#64748b'
+                              }}>
+                                📅 {dueLabel}
+                              </div>
+                              {fineAmount > 0 && (
+                                <span style={{
+                                  display: 'inline-block',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  color: '#b91c1c',
+                                  backgroundColor: '#fee2e2',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  marginTop: '2px'
+                                }}>
+                                  ⚠️ Fine: ₹{fineAmount}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>-</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          {m.active_loan && balance > 0 ? (
+                            isCollectPayOpen ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRepayMember(m);
+                                  setRepayAmount(m.active_loan.installment_amount ? Math.round(m.active_loan.installment_amount) : 500);
+                                  setShowRepayModal(true);
+                                }}
+                                className="btn btn-sm"
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 800,
+                                  backgroundColor: isOverdue ? '#dc2626' : '#10b981',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                                title={isOverdue ? `Overdue with ₹${fineAmount} fine! Collect payment` : "Collect weekly/monthly installment"}
+                              >
+                                <span>💵</span>
+                                <span>{lang === 'ta' ? 'தவணை வரவு (-₹)' : 'Collect Pay (-₹)'}</span>
+                              </button>
+                            ) : (
+                              <div style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                cursor: 'pointer'
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                backgroundColor: '#f1f5f9',
+                                color: '#64748b',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                border: '1px solid #cbd5e1'
                               }}
-                              title="Collect weekly/monthly installment (e.g. ₹500)"
-                            >
-                              <span>💵</span>
-                              <span>{lang === 'ta' ? 'தவணை வரவு (-₹)' : 'Collect Pay (-₹)'}</span>
-                            </button>
+                              title={`Opens on scheduled paying date: ${nextDueDate}`}
+                              >
+                                <span>🔒</span>
+                                <span>Opens: {nextDueDate}</span>
+                              </div>
+                            )
                           ) : (
                             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>-</span>
                           )}
@@ -945,12 +1046,24 @@ export default function GroupAdminDashboard({ currentUser }) {
                 <span style={{ color: 'var(--text-muted)' }}>Current Outstanding:</span>
                 <strong style={{ color: '#b45309', fontSize: '1rem' }}>₹{repayMember.active_loan.outstanding_balance}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Scheduled Installment:</span>
                 <span style={{ fontWeight: 700, color: '#047857' }}>
                   ₹{Math.round(repayMember.active_loan.installment_amount || 500)} ({repayMember.active_loan.repayment_frequency || 'WEEKLY'})
                 </span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Next Due Date:</span>
+                <span style={{ fontWeight: 700, color: repayMember.active_loan.next_due_date && repayMember.active_loan.next_due_date < new Date().toISOString().split('T')[0] ? '#dc2626' : '#2563eb' }}>
+                  📅 {repayMember.active_loan.next_due_date || 'Upcoming'}
+                </span>
+              </div>
+              {repayMember.active_loan.fine_amount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                  <span style={{ color: '#b91c1c', fontWeight: 600 }}>Overdue Penalty Fine:</span>
+                  <strong style={{ color: '#b91c1c' }}>₹{repayMember.active_loan.fine_amount} ({repayMember.active_loan.overdue_days || Math.floor(repayMember.active_loan.fine_amount / 50)} days @ ₹50/day)</strong>
+                </div>
+              )}
             </div>
 
             {repayError && (
