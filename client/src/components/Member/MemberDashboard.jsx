@@ -834,7 +834,7 @@ export default function MemberDashboard({ currentUser }) {
                       Loan #{eligibility.loanNumber}
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      {eligibility.completedLoans === 3 ? 'Requires 95+ score' : 'Sequential flow'}
+                      {eligibility.loanNumber === 4 ? '95+ score allows only 4th loan' : (eligibility.loanNumber > 4 ? 'Policy limit reached' : 'Sequential flow')}
                     </span>
                   </div>
                 </div>
