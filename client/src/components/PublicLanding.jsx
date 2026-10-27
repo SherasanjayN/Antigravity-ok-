@@ -209,7 +209,7 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
         color: '#64748b'
       }}>
         <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: '#334155' }}>
-          மகளிர் குழு • Magalir Kuzhu Management System
+          Magalir Connect AI • மகளிர் கனெக்ட் AI
         </p>
         <p style={{ margin: 0 }}>
           Dedicated to financial inclusion, mutual assistance, and community empowerment in Tamil Nadu.

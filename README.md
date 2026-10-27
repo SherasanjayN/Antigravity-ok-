@@ -1,7 +1,7 @@
-# மகளிர் குழு • Magalir Kuzhu Management System
-### Self-Help Group (SHG) Management, Community Empowerment & 3-Step Loan Approval Portal
+# Magalir Connect AI
+### A Smart Loan and Group Management System for Rural Women's Self-Help Groups with Tamil
 
-A full-stack, enterprise-grade web application built to streamline the operations of Self-Help Groups (Magalir Kuzhu), empowering women communities with group allocation, real-time group communication, official announcements, and a transparent **3-step loan approval pipeline** with automated real email notifications.
+A full-stack, AI-powered web application built to streamline the operations of Women's Self-Help Groups (Magalir Kuzhu), empowering rural women with bilingual (Tamil + English) SHE AI assistance, group allocation, real-time group communication, official announcements, and a transparent **3-step loan approval pipeline** with automated email notifications and live EMI calculations.
 
 ---
 

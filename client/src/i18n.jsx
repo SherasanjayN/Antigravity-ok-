@@ -3,9 +3,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const translations = {
   en: {
     // Branding
-    app_title: 'Magalir Kuzhu Management System',
-    app_tamil_title: 'மகளிர் குழு',
-    portal_sub: 'Self-Help Group (SHG) Financial Empowerment Portal',
+    app_title: 'Magalir Connect AI',
+    app_tamil_title: 'மகளிர் கனெக்ட் AI',
+    portal_sub: 'Smart Loan & Group Management System for Rural Women\'s Self-Help Groups with Tamil',
     
     // Auth & Navigation
     signin: 'Sign In',
@@ -140,9 +140,9 @@ const translations = {
   },
   ta: {
     // Branding
-    app_title: 'மகளிர் குழு மேலாண்மை அமைப்பு',
-    app_tamil_title: 'மகளிர் குழு',
-    portal_sub: 'சுய உதவிக் குழு (SHG) நிதி மேம்பாட்டு தளம்',
+    app_title: 'மகளிர் கனெக்ட் AI',
+    app_tamil_title: 'மகளிர் கனெக்ட்',
+    portal_sub: 'கிராமப்புற பெண்களின் சுய உதவிக் குழுக்கான அறிவூற் கடன் & குழு மேலாண்மை அமைப்பு',
     
     // Auth & Navigation
     signin: 'உள்நுழைக',
