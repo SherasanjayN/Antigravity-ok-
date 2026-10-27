@@ -1563,40 +1563,51 @@ app.post('/api/group-admin/members/loans', authenticateToken, requireRole('GROUP
 
     const freq = (repayment_frequency || 'WEEKLY').toUpperCase();
     const effectiveTenure = Number(tenure_value) || (freq === 'WEEKLY' ? 10 : 6);
-    const calc = calculateEmi(numAmount, 12, freq, effectiveTenure);
     const applicationId = `APP-GA-MEM-${Math.floor(1000 + Math.random() * 9000)}`;
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const loanAccountNumber = `MK-LN-2026-${randomSuffix}`;
+
+    const loanId = uuidv4();
+    const scheduleData = generateRepaymentSchedule(numAmount, 12, freq, effectiveTenure, new Date().toISOString(), loanId);
 
     const newLoan = {
-      id: uuidv4(),
+      id: loanId,
       application_id: applicationId,
-      loan_account_number: null,
+      loan_account_number: loanAccountNumber,
       loan_sequence_number: 1,
       user_id: member.id,
       group_id: member.group_id,
       amount: numAmount,
-      sanctioned_amount: null,
+      sanctioned_amount: numAmount,
       purpose: purpose ? purpose.trim() : 'SHG Member Livelihood Expansion',
       annual_interest_rate: 12,
       interest_method: 'REDUCING_BALANCE',
       repayment_frequency: freq,
       tenure_value: effectiveTenure,
       tenure_unit: freq === 'WEEKLY' ? 'Weeks' : 'Months',
-      total_installments: calc.installments,
-      installment_amount: calc.emi,
-      total_interest: calc.totalInterest,
-      total_repayment: calc.totalRepayment,
+      total_installments: scheduleData.calc.installments,
+      installment_amount: scheduleData.calc.emi,
+      total_interest: scheduleData.calc.totalInterest,
+      total_repayment: scheduleData.calc.totalRepayment,
       payment_mode: payment_mode || 'CASH',
       upi_email: null,
-      notes: notes ? notes.trim() : `Initiated by Group Admin ${req.user.name}`,
-      status: 'PENDING_SUPER_ADMIN', // Group Admin initiated, forwarded directly to Super Admin
-      disbursement_status: 'NOT_DISBURSED',
+      notes: notes ? notes.trim() : `Recorded by Group Admin ${req.user.name}`,
+      status: 'DISBURSED',
+      disbursement_status: 'DISBURSED',
+      disbursed_amount: numAmount,
+      disbursed_at: new Date().toISOString(),
+      disbursed_by: req.user.name,
       total_paid: 0,
-      outstanding_balance: calc.totalRepayment,
+      outstanding_balance: scheduleData.calc.totalRepayment,
+      repayment_schedule: scheduleData.schedule,
+      first_due_date: scheduleData.schedule[0]?.due_date || null,
+      final_due_date: scheduleData.schedule[scheduleData.schedule.length - 1]?.due_date || null,
       requested_at: new Date().toISOString(),
+      sanctioned_at: new Date().toISOString(),
       timeline: [
         {
-          status: 'PENDING_SUPER_ADMIN',
-          note: `Loan application for ₹${numAmount} (${freq}, ${effectiveTenure} ${freq === 'WEEKLY' ? 'weeks' : 'months'}) entered by Group Admin ${req.user.name} and forwarded to Super Admin for sanction.`,
+          status: 'DISBURSED',
+          note: `Loan of ₹${numAmount} (${freq}, ${effectiveTenure} ${freq === 'WEEKLY' ? 'weeks' : 'months'}) issued and disbursed to ${member.name} by Group Admin ${req.user.name}. Account: ${loanAccountNumber}. Repayment schedule is active.`,
           by_name: req.user.name,
           at: new Date().toISOString()
         }
@@ -1605,6 +1616,15 @@ app.post('/api/group-admin/members/loans', authenticateToken, requireRole('GROUP
 
     loans.unshift(newLoan);
     writeCollection('loans', loans);
+
+    const schedules = readCollection('repayment_schedules');
+    schedules.push({
+      loan_id: loanId,
+      loan_account_number: loanAccountNumber,
+      user_id: member.id,
+      schedule: scheduleData.schedule
+    });
+    writeCollection('repayment_schedules', schedules);
 
     // Notify member
     createNotification(

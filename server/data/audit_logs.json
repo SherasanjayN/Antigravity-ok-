@@ -1,5 +1,41 @@
 [
   {
+    "id": "f6d4ecab-13b4-46b2-b418-416bd5b9a44f",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "RECORD_REPAYMENT",
+    "details": "Recorded CASH payment of ₹500 for loan MK-LN-2026-6037",
+    "created_at": "2026-10-27T21:44:17.973Z"
+  },
+  {
+    "id": "83975230-2424-4081-97a0-27ff6814f456",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "SCORE_CHANGED",
+    "details": "Repayment score updated for member Revathi Natarajan (usr-grp-chn-01-m3) from 100 to 98. Loan completion status: ACTIVE.",
+    "created_at": "2026-10-27T21:44:17.971Z"
+  },
+  {
+    "id": "69309dca-30b8-4fd4-90ad-435a63f0d6ff",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "ADD_MEMBER_LOAN",
+    "details": "Added loan APP-GA-MEM-4160 for member Revathi Natarajan (₹5000, WEEKLY)",
+    "created_at": "2026-10-27T21:44:13.611Z"
+  },
+  {
+    "id": "bfda55db-cbeb-4eca-b3b7-4c5e4d26692e",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "ADD_MEMBER_LOAN",
+    "details": "Added loan APP-GA-MEM-9541 for member Kavitha Murugan (₹5000, WEEKLY)",
+    "created_at": "2026-10-27T21:32:29.134Z"
+  },
+  {
     "id": "488779ea-435a-48a4-a8b0-c5b30ac6a9b0",
     "user_id": "usr-admin-grp-chn-01",
     "user_name": "Kavitha Murugan",

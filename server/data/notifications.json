@@ -1,5 +1,75 @@
 [
   {
+    "id": "b41f3907-a9b8-4cd4-9d5e-6bdee277a252",
+    "user_id": "usr-admin-grp-chn-01",
+    "type": "REPAYMENT_RECORDED",
+    "title": "Repayment Successfully Recorded",
+    "message": "Recorded ₹500 for Revathi Natarajan. Receipt: MK-RCP-20261027-9160. New outstanding: ₹4563.68.",
+    "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "is_read": false,
+    "created_at": "2026-10-27T21:44:17.960Z"
+  },
+  {
+    "id": "f2455957-fe09-4192-94b1-03911e1dbba2",
+    "user_id": "super-admin-01",
+    "type": "REPAYMENT_RECORDED",
+    "title": "Repayment Collected",
+    "message": "Group Admin Kavitha Murugan recorded payment of ₹500 for member Revathi Natarajan. Outstanding balance: ₹4563.68.",
+    "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "is_read": false,
+    "created_at": "2026-10-27T21:44:17.952Z"
+  },
+  {
+    "id": "2d99b244-b00a-4683-8287-ff72eff640e9",
+    "user_id": "usr-grp-chn-01-m3",
+    "type": "REPAYMENT_CONFIRMED",
+    "title": "Repayment Recorded | தவணை வரவு வைக்கப்பட்டது",
+    "message": "Payment of ₹500 (CASH) deducted/recorded by Group Admin Kavitha Murugan. Receipt: MK-RCP-20261027-9160. Remaining loan balance: ₹4563.68.",
+    "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "is_read": false,
+    "created_at": "2026-10-27T21:44:17.946Z"
+  },
+  {
+    "id": "94d662eb-1044-4eaf-86f3-20ade99d5928",
+    "user_id": "super-admin-01",
+    "type": "NEW_LOAN_APPLICATION",
+    "title": "New Group Member Loan Submitted by Group Admin",
+    "message": "Group Admin Kavitha Murugan submitted a ₹5000 loan application for Revathi Natarajan.",
+    "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "is_read": false,
+    "created_at": "2026-10-27T21:44:13.609Z"
+  },
+  {
+    "id": "d1ad6357-19c1-4568-bcf0-7e5205d84057",
+    "user_id": "usr-grp-chn-01-m3",
+    "type": "LOAN_SUBMITTED",
+    "title": "Loan Application Created by Group Admin | குழு தலைவர் கடன் பதிவு செய்துள்ளார்",
+    "message": "Your Group Admin Kavitha Murugan has submitted a loan application of ₹5000 (WEEKLY) on your behalf.",
+    "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "is_read": false,
+    "created_at": "2026-10-27T21:44:13.607Z"
+  },
+  {
+    "id": "9cab7564-8a7e-4da5-980e-391e3303624c",
+    "user_id": "super-admin-01",
+    "type": "NEW_LOAN_APPLICATION",
+    "title": "New Group Member Loan Submitted by Group Admin",
+    "message": "Group Admin Kavitha Murugan submitted a ₹5000 loan application for Kavitha Murugan.",
+    "related_loan_id": "c734928b-f2ff-43b1-8d29-e3677eb3291d",
+    "is_read": false,
+    "created_at": "2026-10-27T21:32:29.123Z"
+  },
+  {
+    "id": "d9607759-8d0c-4c2b-9a5e-303910dc31e7",
+    "user_id": "usr-admin-grp-chn-01",
+    "type": "LOAN_SUBMITTED",
+    "title": "Loan Application Created by Group Admin | குழு தலைவர் கடன் பதிவு செய்துள்ளார்",
+    "message": "Your Group Admin Kavitha Murugan has submitted a loan application of ₹5000 (WEEKLY) on your behalf.",
+    "related_loan_id": "c734928b-f2ff-43b1-8d29-e3677eb3291d",
+    "is_read": true,
+    "created_at": "2026-10-27T21:32:29.107Z"
+  },
+  {
     "id": "af1f2efc-bc0a-4462-a010-74bf08189fc0",
     "user_id": "super-admin-01",
     "type": "NEW_LOAN_APPLICATION",
@@ -16,7 +86,7 @@
     "title": "Loan Application Created by Group Admin | குழு தலைவர் கடன் பதிவு செய்துள்ளார்",
     "message": "Your Group Admin Kavitha Murugan has submitted a loan application of ₹4000 (MONTHLY) on your behalf.",
     "related_loan_id": "87639b17-4113-468b-b44c-283754477386",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:30:02.496Z"
   },
   {

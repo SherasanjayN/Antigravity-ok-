@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "624b5c5d-7794-4445-ac8d-0e6e07078af8",
+    "receipt_number": "MK-RCP-20261027-9160",
+    "loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "loan_account_number": "MK-LN-2026-6037",
+    "member_id": "usr-grp-chn-01-m3",
+    "member_name": "Revathi Natarajan",
+    "amount": 500,
+    "payment_method": "CASH",
+    "transaction_reference": null,
+    "payment_date": "2026-10-27",
+    "total_paid": 500,
+    "remaining_balance": 4563.68,
+    "next_due_date": "2026-11-03",
+    "recorded_by": "Kavitha Murugan",
+    "recorded_by_id": "usr-admin-grp-chn-01",
+    "notes": "",
+    "created_at": "2026-10-27T21:44:13.615Z"
+  }
+]
