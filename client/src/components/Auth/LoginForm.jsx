@@ -102,7 +102,7 @@ export default function LoginForm({ onLoginSuccess, onSwitchToRegister, onPendin
           </p>
         </div>
 
-// Demo test accounts section removed
+        {/* Demo test accounts section removed */}
 
         {error && (
           <div style={{
