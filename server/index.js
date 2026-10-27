@@ -2475,7 +2475,14 @@ app.post('/api/notifications/mark-all-read', authenticateToken, (req, res) => {
 app.get('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
   try {
     const { groupId } = req.params;
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.group_id !== groupId) {
+    const groups = readCollection('groups');
+    const group = groups.find(g => g.id === groupId);
+
+    const isAuthorized = req.user.role === 'SUPER_ADMIN' ||
+      req.user.group_id === groupId ||
+      (group && group.group_admin_id === req.user.id);
+
+    if (!isAuthorized) {
       return res.status(403).json({ error: 'Access forbidden: You do not have permission to view this group chat.' });
     }
 
@@ -2496,14 +2503,26 @@ app.post('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Message text cannot be empty.' });
     }
 
-    if (req.user.role !== 'SUPER_ADMIN' && req.user.group_id !== groupId) {
-      return res.status(403).json({ error: 'Access forbidden: You are not a member of this group.' });
+    const groups = readCollection('groups');
+    const group = groups.find(g => g.id === groupId);
+
+    const isAuthorized = req.user.role === 'SUPER_ADMIN' ||
+      req.user.group_id === groupId ||
+      (group && group.group_admin_id === req.user.id);
+
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Access forbidden: You are not authorized for this group chat.' });
     }
 
     const messages = readCollection('messages');
+    const users = readCollection('users');
+
     const newMsg = {
       id: uuidv4(),
       group_id: groupId,
+      group_name: group?.group_name || 'SHG Group',
+      area: group?.area || req.user.area || '',
+      district: group?.district || req.user.district || '',
       sender_id: req.user.id,
       sender_name: req.user.name,
       sender_role: req.user.role,
@@ -2513,6 +2532,21 @@ app.post('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
 
     messages.push(newMsg);
     writeCollection('messages', messages);
+
+    // If message is sent by Group Admin or Member, notify Super Admin in their Area-wise inbox
+    if (req.user.role !== 'SUPER_ADMIN') {
+      const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN');
+      superAdmins.forEach(sa => {
+        createNotification(
+          sa.id,
+          'NEW_GROUP_MESSAGE',
+          `💬 Message from ${req.user.name} (${group?.area || 'Group Admin'})`,
+          `[${group?.area || ''} - ${group?.group_name || ''}]: "${text.trim().substring(0, 80)}"`,
+          groupId
+        );
+      });
+    }
+
     res.status(201).json(newMsg);
   } catch (err) {
     res.status(500).json({ error: 'Failed to send message.' });
@@ -2523,6 +2557,8 @@ app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, (req, 
   try {
     const { groupId, messageId } = req.params;
     const messages = readCollection('messages');
+    const groups = readCollection('groups');
+    const group = groups.find(g => g.id === groupId);
     const msgIndex = messages.findIndex(m => m.id === messageId && m.group_id === groupId);
 
     if (msgIndex === -1) {
@@ -2530,13 +2566,8 @@ app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, (req, 
     }
 
     const msg = messages[msgIndex];
-
-    // Allowed to delete:
-    // 1. SUPER_ADMIN can delete any message
-    // 2. GROUP_ADMIN of that group can delete any message in their group
-    // 3. User who sent the message (sender_id === req.user.id) can delete their own message
     const isSuperAdmin = req.user.role === 'SUPER_ADMIN';
-    const isGroupAdmin = req.user.role === 'GROUP_ADMIN' && req.user.group_id === groupId;
+    const isGroupAdmin = (req.user.role === 'GROUP_ADMIN') && (req.user.group_id === groupId || group?.group_admin_id === req.user.id);
     const isSender = msg.sender_id === req.user.id;
 
     if (!isSuperAdmin && !isGroupAdmin && !isSender) {

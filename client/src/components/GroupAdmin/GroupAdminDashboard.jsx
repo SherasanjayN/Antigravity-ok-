@@ -588,7 +588,12 @@ export default function GroupAdminDashboard({ currentUser }) {
                         } else {
                           // Future date (beyond tomorrow): Locked until that paying date arrives
                           isCollectPayOpen = false;
-                          dueLabel = nextDueDate;
+                          try {
+                            const formattedDate = new Date(nextDueDate + 'T12:00:00').toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                            dueLabel = formattedDate;
+                          } catch {
+                            dueLabel = nextDueDate;
+                          }
                         }
                       }
                     }
@@ -632,6 +637,9 @@ export default function GroupAdminDashboard({ currentUser }) {
                                 color: isOverdue ? '#dc2626' : isToday || isTomorrow ? '#047857' : '#64748b'
                               }}>
                                 📅 {dueLabel}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                ⏰ 12:00 PM IST
                               </div>
                               {fineAmount > 0 && (
                                 <span style={{

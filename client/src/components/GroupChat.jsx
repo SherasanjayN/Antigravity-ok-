@@ -80,7 +80,12 @@ export default function GroupChat({ groupId, groupName, group, currentUser }) {
     if (!ts) return '';
     try {
       const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const isToday = new Date().toDateString() === d.toDateString();
+      const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (isToday) {
+        return `Today at ${timeStr}`;
+      }
+      return `${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}, ${timeStr}`;
     } catch {
       return '';
     }

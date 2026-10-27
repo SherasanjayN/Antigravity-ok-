@@ -18,6 +18,7 @@ import GroupsTab from './GroupsTab';
 import UsersTab from './UsersTab';
 import BroadcastTab from './BroadcastTab';
 import LoanCalculatorModal from '../LoanCalculatorModal';
+import AreaWiseGroupChatTab from './AreaWiseGroupChatTab';
 import { api } from '../../services/api';
 
 import { useLanguage } from '../../i18n';
@@ -63,6 +64,7 @@ export default function SuperAdminDashboard({ currentUser }) {
     },
     { id: 'calculator', label: lang === 'ta' ? 'கடன் கால்குலேட்டர்' : 'Loan Calculator', icon: Calculator },
     { id: 'groups', label: t('tab_groups'), icon: Building2 },
+    { id: 'area_chat', label: lang === 'ta' ? 'குழு தலைவர் அரட்டை (பகுதி வாரியாக)' : 'Area-wise Admin Chat', icon: MessageSquare },
     { id: 'users', label: t('tab_users'), icon: Users },
     { id: 'broadcast', label: t('tab_broadcast'), icon: Megaphone }
   ];
@@ -146,6 +148,7 @@ export default function SuperAdminDashboard({ currentUser }) {
           </div>
         )}
         {activeTab === 'groups' && <GroupsTab currentUser={currentUser} />}
+        {activeTab === 'area_chat' && <AreaWiseGroupChatTab currentUser={currentUser} />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'broadcast' && <BroadcastTab />}
       </main>
