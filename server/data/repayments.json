@@ -1,5 +1,24 @@
 [
   {
+    "id": "11b6d95c-332b-4611-8773-6952d3f50370",
+    "receipt_number": "MK-RCP-20261027-7527",
+    "loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "loan_account_number": "MK-LN-2026-3001",
+    "member_id": "usr-grp-chn-01-m2",
+    "member_name": "Priya Sundaram",
+    "amount": 608,
+    "payment_method": "UPI",
+    "transaction_reference": "TXN-SHG-DIRECT",
+    "payment_date": "2026-10-27",
+    "total_paid": 2430.92,
+    "remaining_balance": 3645.51,
+    "next_due_date": "2026-10-06",
+    "recorded_by": "Kavitha Murugan",
+    "recorded_by_id": "usr-admin-grp-chn-01",
+    "notes": "₹608 collected by Group Admin Kavitha Murugan",
+    "created_at": "2026-10-27T21:45:48.848Z"
+  },
+  {
     "id": "624b5c5d-7794-4445-ac8d-0e6e07078af8",
     "receipt_number": "MK-RCP-20261027-9160",
     "loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",

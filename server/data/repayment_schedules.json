@@ -587,13 +587,13 @@
         "expectedAmount": 607.64,
         "principal_due": 597.91,
         "interest_due": 9.73,
-        "principal_paid": 0,
-        "interest_paid": 0,
-        "paidAmount": 0,
-        "remainingAmount": 607.64,
-        "overdueDays": 17,
+        "principal_paid": 597.91,
+        "interest_paid": 9.73,
+        "paidAmount": 607.64,
+        "remainingAmount": 0,
+        "overdueDays": 0,
         "penaltyAmount": 850,
-        "status": "OVERDUE"
+        "status": "PAID"
       },
       {
         "repaymentId": "ln-usr-grp-chn-01-m2-overdue_inst_5",
@@ -605,12 +605,12 @@
         "principal_due": 599.29,
         "interest_due": 8.35,
         "principal_paid": 0,
-        "interest_paid": 0,
-        "paidAmount": 0,
-        "remainingAmount": 607.64,
+        "interest_paid": 0.36,
+        "paidAmount": 0.36,
+        "remainingAmount": 607.28,
         "overdueDays": 21,
         "penaltyAmount": 1050,
-        "status": "OVERDUE"
+        "status": "PARTIALLY_PAID_OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-chn-01-m2-overdue_inst_6",

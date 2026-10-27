@@ -1,12 +1,42 @@
 [
   {
+    "id": "00a82be0-6eb2-4f8b-86ad-dbd142ffd958",
+    "user_id": "usr-admin-grp-chn-01",
+    "type": "REPAYMENT_RECORDED",
+    "title": "Repayment Successfully Recorded",
+    "message": "Recorded ₹608 for Priya Sundaram. Receipt: MK-RCP-20261027-7527. New outstanding: ₹3645.51.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": true,
+    "created_at": "2026-10-27T21:45:51.924Z"
+  },
+  {
+    "id": "b374c54a-75a6-4cc7-a217-1413f171418e",
+    "user_id": "super-admin-01",
+    "type": "REPAYMENT_RECORDED",
+    "title": "Repayment Collected",
+    "message": "Group Admin Kavitha Murugan recorded payment of ₹608 for member Priya Sundaram. Outstanding balance: ₹3645.51.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-27T21:45:51.919Z"
+  },
+  {
+    "id": "d0938cc0-b1e9-4da7-85c1-8c4cdeeabf7d",
+    "user_id": "usr-grp-chn-01-m2",
+    "type": "REPAYMENT_CONFIRMED",
+    "title": "Repayment Recorded | தவணை வரவு வைக்கப்பட்டது",
+    "message": "Payment of ₹608 (UPI) deducted/recorded by Group Admin Kavitha Murugan. Receipt: MK-RCP-20261027-7527. Remaining loan balance: ₹3645.51.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-27T21:45:51.909Z"
+  },
+  {
     "id": "b41f3907-a9b8-4cd4-9d5e-6bdee277a252",
     "user_id": "usr-admin-grp-chn-01",
     "type": "REPAYMENT_RECORDED",
     "title": "Repayment Successfully Recorded",
     "message": "Recorded ₹500 for Revathi Natarajan. Receipt: MK-RCP-20261027-9160. New outstanding: ₹4563.68.",
     "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:44:17.960Z"
   },
   {

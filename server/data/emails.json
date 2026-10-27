@@ -1,5 +1,31 @@
 [
   {
+    "id": "f16b5665-f106-4ab4-b0ba-927bb31ae7e5",
+    "to": "priya.m2@mail.com",
+    "recipient_name": "Priya Sundaram",
+    "amount": "ln-usr-grp-chn-01-m2-overdue",
+    "subject": "UPI Repayment Receipt – Magalir Kuzhu",
+    "body": "Dear Priya Sundaram,\n\nYour UPI repayment has been recorded successfully.\n\nPayment Details:\n- Receipt Number: MK-RCP-20261027-7527\n- Loan Account Number: MK-LN-2026-3001\n- Amount Received: ₹608\n- Payment Method: UPI (Recorded)\n- UPI Reference: TXN-SHG-DIRECT\n- Payment Date: 2026-10-27\n- Total Paid So Far: ₹2430.92\n- Remaining Balance: ₹3645.51\n- Next Due Date: 2026-10-06\n\nPlease retain this email for your records.\n\nRegards,\nMagalir Kuzhu Management System",
+    "sent_at": "2026-10-27T21:45:51.904Z",
+    "status": "SENT",
+    "preview_url": "https://ethereal.email/message/auEbLTzZI-YJDEzHauEbj7uQ5JWplQ5eAAAAAupZYIICizlt1DutIvB5cgc",
+    "details": "<2d06b931-5178-7133-cf9f-f379e6a06cbe@magalirkuzhu.org>",
+    "last_error": null
+  },
+  {
+    "id": "549c79f6-4dc1-445f-a7aa-362e24b99d02",
+    "to": "revathi.m3@mail.com",
+    "recipient_name": "Revathi Natarajan",
+    "amount": "42da3038-dd1a-426b-a8ca-da53992a3517",
+    "subject": "Cash Repayment Receipt – Magalir Kuzhu",
+    "body": "Dear Revathi Natarajan,\n\nYour cash repayment has been recorded successfully.\n\nPayment Details:\n- Receipt Number: MK-RCP-20261027-9160\n- Loan Account Number: MK-LN-2026-6037\n- Amount Received: ₹500\n- Payment Method: CASH\n- Payment Date: 2026-10-27\n- Total Paid So Far: ₹500\n- Remaining Balance: ₹4563.68\n- Next Due Date: 2026-11-03\n\nPlease retain this email for your records.\n\nRegards,\nMagalir Kuzhu Management System",
+    "sent_at": "2026-10-27T21:44:17.941Z",
+    "status": "SENT",
+    "preview_url": "https://ethereal.email/message/auEbLTzZI-YJDEzHauEbMfdl9mhXtZC.AAAAAfrXoR-7TVhfJ2yEqtLhvmw",
+    "details": "<32019c7b-96a1-5994-a8d0-d6d4c40bdc6a@magalirkuzhu.org>",
+    "last_error": null
+  },
+  {
     "id": "72efe7ab-4e12-451f-ada5-ff0e2f69b998",
     "to": "sherasanjay0404@gmail.com",
     "recipient_name": "latha",

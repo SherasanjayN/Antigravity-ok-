@@ -1,5 +1,23 @@
 [
   {
+    "id": "2a43b4a8-c612-4565-a80e-98c0610b1242",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "RECORD_REPAYMENT",
+    "details": "Recorded UPI payment of ₹608 for loan MK-LN-2026-3001",
+    "created_at": "2026-10-27T21:45:51.949Z"
+  },
+  {
+    "id": "92b5e86b-0661-494d-8d40-6943630f3d95",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "SCORE_CHANGED",
+    "details": "Repayment score updated for member Priya Sundaram (usr-grp-chn-01-m2) from 82 to 77. Loan completion status: ACTIVE.",
+    "created_at": "2026-10-27T21:45:51.945Z"
+  },
+  {
     "id": "f6d4ecab-13b4-46b2-b418-416bd5b9a44f",
     "user_id": "usr-admin-grp-chn-01",
     "user_name": "Kavitha Murugan",

@@ -220,7 +220,9 @@
     ],
     "principal_paid": 488.46,
     "interest_paid": 11.54,
-    "next_due_date": "2026-11-03"
+    "next_due_date": "2026-11-03",
+    "overdue_days": 0,
+    "penalty_amount": 0
   },
   {
     "id": "c734928b-f2ff-43b1-8d29-e3677eb3291d",
@@ -919,10 +921,10 @@
     "payment_mode": "CASH",
     "status": "DISBURSED",
     "disbursement_status": "DISBURSED",
-    "total_paid": 1822.92,
-    "outstanding_balance": 4253.51,
-    "overdue_days": 59,
-    "penalty_amount": 2950,
+    "total_paid": 2430.92,
+    "outstanding_balance": 3645.51,
+    "overdue_days": 42,
+    "penalty_amount": 2100,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -987,13 +989,13 @@
         "expectedAmount": 607.64,
         "principal_due": 597.91,
         "interest_due": 9.73,
-        "principal_paid": 0,
-        "interest_paid": 0,
-        "paidAmount": 0,
-        "remainingAmount": 607.64,
-        "overdueDays": 17,
+        "principal_paid": 597.91,
+        "interest_paid": 9.73,
+        "paidAmount": 607.64,
+        "remainingAmount": 0,
+        "overdueDays": 0,
         "penaltyAmount": 850,
-        "status": "OVERDUE"
+        "status": "PAID"
       },
       {
         "repaymentId": "ln-usr-grp-chn-01-m2-overdue_inst_5",
@@ -1005,12 +1007,12 @@
         "principal_due": 599.29,
         "interest_due": 8.35,
         "principal_paid": 0,
-        "interest_paid": 0,
-        "paidAmount": 0,
-        "remainingAmount": 607.64,
+        "interest_paid": 0.36,
+        "paidAmount": 0.36,
+        "remainingAmount": 607.28,
         "overdueDays": 21,
         "penaltyAmount": 1050,
-        "status": "OVERDUE"
+        "status": "PARTIALLY_PAID_OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-chn-01-m2-overdue_inst_6",
@@ -1096,6 +1098,17 @@
         "overdueDays": 0,
         "penaltyAmount": 0,
         "status": "UPCOMING"
+      }
+    ],
+    "principal_paid": 597.91,
+    "interest_paid": 10.09,
+    "next_due_date": "2026-10-06",
+    "timeline": [
+      {
+        "status": "REPAYMENT_RECORDED",
+        "note": "Repayment of ₹608 recorded via UPI. Receipt: MK-RCP-20261027-7527. Remaining balance: ₹3645.51.",
+        "by_name": "Kavitha Murugan",
+        "at": "2026-10-27T21:45:48.855Z"
       }
     ]
   },
