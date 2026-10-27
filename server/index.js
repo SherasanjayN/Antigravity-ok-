@@ -1,0 +1,1594 @@
+const express = require('express');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
+
+const { readCollection, writeCollection, initDb } = require('./db');
+const { generateToken, authenticateToken, requireRole } = require('./auth');
+const {
+  sendLoanSanctionEmail,
+  sendLoanDisbursementEmail,
+  sendCashRepaymentEmail,
+  sendUpiRepaymentEmail,
+  sendLoanRejectionEmail,
+  retryEmail
+} = require('./mailer');
+const {
+  calculateEmi,
+  generateRepaymentSchedule,
+  allocateRepayment
+} = require('./loanCalculations');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+});
+
+// Initialize database & seed master accounts
+initDb();
+
+// ----------------- NOTIFICATION & AUDIT HELPERS -----------------
+function createNotification(userId, type, title, message, relatedLoanId = null) {
+  try {
+    const notifications = readCollection('notifications');
+    const notif = {
+      id: uuidv4(),
+      user_id: userId,
+      type,
+      title,
+      message,
+      related_loan_id: relatedLoanId,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    notifications.unshift(notif);
+    writeCollection('notifications', notifications);
+    return notif;
+  } catch (err) {
+    console.error('Error creating notification:', err);
+  }
+}
+
+function recordAudit(userId, userName, role, action, details) {
+  try {
+    const logs = readCollection('audit_logs');
+    logs.unshift({
+      id: uuidv4(),
+      user_id: userId,
+      user_name: userName,
+      role,
+      action,
+      details,
+      created_at: new Date().toISOString()
+    });
+    writeCollection('audit_logs', logs);
+  } catch (err) {
+    console.error('Error recording audit:', err);
+  }
+}
+
+// Helper: Check if a user has an active non-completed loan
+function checkUserActiveLoan(userId) {
+  const loans = readCollection('loans');
+  const activeLoan = loans.find(l => {
+    if (l.user_id !== userId) return false;
+    if (['REJECTED_GROUP_ADMIN', 'REJECTED_SUPER_ADMIN', 'COMPLETED', 'REJECTED'].includes(l.status)) {
+      return false;
+    }
+    // Pending review, sanctioned, or disbursed with outstanding balance
+    if (['PENDING_GROUP_ADMIN', 'PENDING_SUPER_ADMIN', 'SANCTIONED'].includes(l.status)) {
+      return true;
+    }
+    if (l.status === 'DISBURSED' || l.status === 'APPROVED') {
+      const balance = l.outstanding_balance !== undefined ? l.outstanding_balance : l.amount;
+      return balance > 0.01;
+    }
+    return false;
+  });
+
+  return activeLoan || null;
+}
+
+// ----------------- VALIDATION HELPERS -----------------
+function validateRegistration(data) {
+  const { name, phone, email, area, district, password } = data;
+  const errors = [];
+
+  if (!name || typeof name !== 'string' || name.trim().replace(/[^a-zA-Z]/g, '').length < 3) {
+    errors.push('Name must contain at least 3 letters.');
+  }
+  if (!phone || !/^\d{10}$/.test(String(phone).trim())) {
+    errors.push('Phone number must be exactly 10 digits.');
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(String(email).trim())) {
+    errors.push('A valid email address is required.');
+  }
+  if (!area || typeof area !== 'string' || !area.trim()) {
+    errors.push('Area is mandatory.');
+  }
+  if (!district || typeof district !== 'string' || !district.trim()) {
+    errors.push('District is mandatory.');
+  }
+  if (!password || typeof password !== 'string' || password.length < 6 || !/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+    errors.push('Password must be at least 6 characters and contain both letters and numbers.');
+  }
+  return errors;
+}
+
+// ----------------- AUTH ROUTES -----------------
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { name, phone, email, area, district, password } = req.body;
+    const errors = validateRegistration(req.body);
+    if (errors.length > 0) {
+      return res.status(400).json({ error: errors.join(' ') });
+    }
+
+    const users = readCollection('users');
+    const existing = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (existing) {
+      return res.status(400).json({ error: 'An account with this email already exists.' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const password_hash = bcrypt.hashSync(password, salt);
+
+    const newUser = {
+      id: uuidv4(),
+      name: name.trim(),
+      phone: String(phone).trim(),
+      email: email.trim().toLowerCase(),
+      password_hash,
+      area: area.trim(),
+      district: district.trim(),
+      status: 'PENDING',
+      role: 'USER',
+      group_id: null,
+      created_at: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    writeCollection('users', users);
+
+    res.status(201).json({
+      message: 'Registration submitted successfully. Your account is pending Super Admin approval.',
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        status: newUser.status
+      }
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Server error during registration.' });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const users = readCollection('users');
+    const user = users.find(u => u.email.toLowerCase() === String(email).trim().toLowerCase());
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    if (user.status === 'PENDING') {
+      return res.status(200).json({
+        status: 'PENDING',
+        message: 'Your registration is currently pending Super Admin approval. You will receive access once approved.',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          status: 'PENDING',
+          role: user.role,
+          area: user.area,
+          district: user.district
+        }
+      });
+    }
+
+    if (user.status === 'REJECTED') {
+      return res.status(403).json({
+        status: 'REJECTED',
+        error: 'Your registration request has been declined. Please contact the administrator for further details.'
+      });
+    }
+
+    const token = generateToken(user);
+    let group = null;
+    if (user.group_id) {
+      const groups = readCollection('groups');
+      group = groups.find(g => g.id === user.group_id) || null;
+    }
+
+    res.json({
+      status: 'APPROVED',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        area: user.area,
+        district: user.district,
+        role: user.role,
+        status: user.status,
+        group_id: user.group_id,
+        group
+      }
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error during login.' });
+  }
+});
+
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  try {
+    const users = readCollection('users');
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    let group = null;
+    if (user.group_id) {
+      const groups = readCollection('groups');
+      group = groups.find(g => g.id === user.group_id) || null;
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      area: user.area,
+      district: user.district,
+      role: user.role,
+      status: user.status,
+      group_id: user.group_id,
+      group
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error retrieving user session.' });
+  }
+});
+
+// ----------------- INTERACTIVE LOAN CALCULATOR -----------------
+app.post('/api/calculator', (req, res) => {
+  try {
+    const { principal, annual_interest_rate = 12, repayment_frequency = 'WEEKLY', tenure_value = 10, start_date } = req.body;
+    const P = Number(principal);
+    const R = Number(annual_interest_rate);
+    const N = Number(tenure_value);
+
+    if (isNaN(P) || P <= 0) {
+      return res.status(400).json({ error: 'Please provide a valid positive principal amount.' });
+    }
+
+    const result = generateRepaymentSchedule(P, R, repayment_frequency, N, start_date);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to calculate loan schedule.' });
+  }
+});
+
+// ----------------- SUPER ADMIN ROUTES -----------------
+
+// Overview metrics
+app.get('/api/admin/overview', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+    const loans = readCollection('loans');
+    const repayments = readCollection('repayments');
+
+    const totalMembers = users.filter(u => u.role !== 'SUPER_ADMIN').length;
+    const approvedMembers = users.filter(u => u.status === 'APPROVED' && u.role !== 'SUPER_ADMIN').length;
+    const pendingMembers = users.filter(u => u.status === 'PENDING').length;
+    const activeGroups = groups.length;
+
+    // Financial totals
+    let totalSanctionedAmount = 0;
+    let totalDisbursedAmount = 0;
+    let totalCollectedAmount = 0;
+    let totalOutstandingBalance = 0;
+    let overdueCount = 0;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    loans.forEach(l => {
+      if (['SANCTIONED', 'DISBURSED', 'APPROVED', 'COMPLETED'].includes(l.status)) {
+        totalSanctionedAmount += (l.sanctioned_amount || l.amount || 0);
+      }
+      if (l.status === 'DISBURSED' || l.disbursed_at) {
+        totalDisbursedAmount += (l.disbursed_amount || l.sanctioned_amount || l.amount || 0);
+      }
+      totalCollectedAmount += (l.total_paid || 0);
+      if (l.status === 'DISBURSED') {
+        const bal = l.outstanding_balance !== undefined ? l.outstanding_balance : (l.amount - (l.total_paid || 0));
+        totalOutstandingBalance += Math.max(0, bal);
+        if (l.next_due_date && l.next_due_date < today && bal > 0) {
+          overdueCount++;
+        }
+      }
+    });
+
+    const pendingLoanApprovals = loans.filter(l => l.status === 'PENDING_SUPER_ADMIN').length;
+    const awaitingDisbursement = loans.filter(l => l.status === 'SANCTIONED').length;
+
+    res.json({
+      totalMembers,
+      approvedMembers,
+      pendingMembers,
+      activeGroups,
+      totalSanctionedAmount,
+      totalDisbursedAmount,
+      totalCollectedAmount,
+      totalOutstandingBalance,
+      overdueCount,
+      pendingLoanApprovals,
+      awaitingDisbursement
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch overview metrics.' });
+  }
+});
+
+// Admin Analytics (charts, breakdown)
+app.get('/api/admin/analytics', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const loans = readCollection('loans');
+    const repayments = readCollection('repayments');
+
+    let weeklyLoansCount = 0;
+    let monthlyLoansCount = 0;
+    loans.forEach(l => {
+      if (l.repayment_frequency === 'MONTHLY') monthlyLoansCount++;
+      else weeklyLoansCount++;
+    });
+
+    let cashTotal = 0;
+    let upiTotal = 0;
+    repayments.forEach(r => {
+      if (r.payment_method === 'CASH') cashTotal += (r.amount || 0);
+      else upiTotal += (r.amount || 0);
+    });
+
+    res.json({
+      weeklyVsMonthly: {
+        weekly: weeklyLoansCount,
+        monthly: monthlyLoansCount
+      },
+      cashVsUpi: {
+        cash: cashTotal,
+        upi: upiTotal
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch analytics.' });
+  }
+});
+
+// Pending users with auto-suggested groups
+app.get('/api/admin/pending-users', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    const pending = users
+      .filter(u => u.status === 'PENDING')
+      .map(u => {
+        const suggestedGroups = groups.filter(g =>
+          (g.area.toLowerCase() === u.area.toLowerCase() || g.district.toLowerCase() === u.district.toLowerCase())
+        );
+        return {
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          email: u.email,
+          area: u.area,
+          district: u.district,
+          created_at: u.created_at,
+          suggestedGroups
+        };
+      });
+
+    res.json(pending);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch pending users.' });
+  }
+});
+
+// Approve user & assign group
+app.post('/api/admin/users/:id/approve', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { group_id, role = 'USER' } = req.body;
+
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    const userIndex = users.findIndex(u => u.id === id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const group = groups.find(g => g.id === group_id);
+    if (!group) {
+      return res.status(400).json({ error: 'Please select a valid group for allocation.' });
+    }
+
+    users[userIndex].status = 'APPROVED';
+    users[userIndex].group_id = group_id;
+    users[userIndex].role = role;
+    users[userIndex].approved_at = new Date().toISOString();
+
+    if (role === 'GROUP_ADMIN') {
+      const gIdx = groups.findIndex(g => g.id === group_id);
+      if (gIdx !== -1) {
+        groups[gIdx].group_admin_id = id;
+        writeCollection('groups', groups);
+      }
+    }
+
+    writeCollection('users', users);
+
+    createNotification(
+      id,
+      'REGISTRATION_APPROVED',
+      'Registration Approved! | பதிவு அனுமதிக்கப்பட்டது',
+      `Welcome to Magalir Kuzhu! You have been allocated to ${group.group_name}.`
+    );
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'APPROVE_USER', `Approved user ${users[userIndex].name} into group ${group.group_name}`);
+
+    res.json({
+      message: `User ${users[userIndex].name} approved and assigned to group ${group.group_name}.`,
+      user: users[userIndex],
+      group
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to approve user.' });
+  }
+});
+
+// Reject user
+app.post('/api/admin/users/:id/reject', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const users = readCollection('users');
+    const userIndex = users.findIndex(u => u.id === id);
+    if (userIndex === -1) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    users[userIndex].status = 'REJECTED';
+    users[userIndex].rejection_reason = reason || 'Application requirements not met.';
+    writeCollection('users', users);
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'REJECT_USER', `Rejected registration for ${users[userIndex].email}`);
+    res.json({ message: 'User registration declined.', user: users[userIndex] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to decline registration.' });
+  }
+});
+
+// Directory of users
+app.get('/api/admin/users', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    const mapped = users.map(u => {
+      const g = groups.find(grp => grp.id === u.group_id);
+      return {
+        id: u.id,
+        name: u.name,
+        phone: u.phone,
+        email: u.email,
+        area: u.area,
+        district: u.district,
+        role: u.role,
+        status: u.status,
+        group_id: u.group_id,
+        group_name: g ? g.group_name : 'Unallocated',
+        created_at: u.created_at
+      };
+    });
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users.' });
+  }
+});
+
+// Groups list
+app.get('/api/admin/groups', authenticateToken, (req, res) => {
+  try {
+    const groups = readCollection('groups');
+    const users = readCollection('users');
+
+    const mappedGroups = groups.map(g => {
+      const admin = users.find(u => u.id === g.group_admin_id);
+      const members = users.filter(u => u.group_id === g.id && u.status === 'APPROVED');
+      return {
+        id: g.id,
+        group_name: g.group_name,
+        area: g.area,
+        district: g.district,
+        group_admin_id: g.group_admin_id,
+        group_admin_name: admin ? admin.name : null,
+        group_admin_email: admin ? admin.email : null,
+        member_count: members.length,
+        created_at: g.created_at
+      };
+    });
+    res.json(mappedGroups);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch groups.' });
+  }
+});
+
+// Create group
+app.post('/api/admin/groups', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { group_name, area, district, group_admin_id } = req.body;
+    if (!group_name || !area || !district) {
+      return res.status(400).json({ error: 'Group name, area, and district are required.' });
+    }
+
+    const groups = readCollection('groups');
+    const newGroup = {
+      id: uuidv4(),
+      group_name: group_name.trim(),
+      area: area.trim(),
+      district: district.trim(),
+      group_admin_id: group_admin_id || null,
+      created_at: new Date().toISOString()
+    };
+
+    groups.push(newGroup);
+    writeCollection('groups', groups);
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'CREATE_GROUP', `Created group ${newGroup.group_name}`);
+    res.status(201).json({ message: 'Group created successfully.', group: newGroup });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create group.' });
+  }
+});
+
+// All loans (Super Admin)
+app.get('/api/admin/loans', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    const mapped = loans.map(l => {
+      const member = users.find(u => u.id === l.user_id);
+      const group = groups.find(g => g.id === l.group_id);
+      return {
+        ...l,
+        member_name: member ? member.name : 'Unknown',
+        member_email: member ? member.email : 'Unknown',
+        member_phone: member ? member.phone : 'Unknown',
+        group_name: group ? group.group_name : 'Unknown'
+      };
+    });
+    res.json(mapped);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch loans.' });
+  }
+});
+
+// STEP 3: Super Admin Final Sanction (generates loan account #, creates schedule, sends sanction email)
+app.post('/api/admin/loans/:id/sanction', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+    const schedules = readCollection('repayment_schedules');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    if (loan.status === 'SANCTIONED' || loan.status === 'DISBURSED' || loan.status === 'APPROVED') {
+      return res.status(400).json({ error: 'Loan is already sanctioned or disbursed.' });
+    }
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (!member) {
+      return res.status(404).json({ error: 'Associated member not found.' });
+    }
+
+    // Generate Unique Loan Account Number: MK-LN-2026-XXXX
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const loanAccountNumber = loan.loan_account_number || `MK-LN-2026-${randomSuffix}`;
+
+    // Calculate loan terms
+    const principal = loan.amount;
+    const rate = loan.annual_interest_rate || 12;
+    const freq = loan.repayment_frequency || 'WEEKLY';
+    const tenure = loan.tenure_value || (freq === 'WEEKLY' ? 10 : 6);
+
+    const scheduleData = generateRepaymentSchedule(principal, rate, freq, tenure, loan.preferred_first_due_date || new Date().toISOString());
+
+    loan.loan_account_number = loanAccountNumber;
+    loan.status = 'SANCTIONED';
+    loan.sanctioned_amount = principal;
+    loan.annual_interest_rate = rate;
+    loan.repayment_frequency = freq;
+    loan.tenure_value = tenure;
+    loan.tenure_unit = freq === 'WEEKLY' ? 'Weeks' : 'Months';
+    loan.total_installments = scheduleData.calc.installments;
+    loan.installment_amount = scheduleData.calc.emi;
+    loan.total_interest = scheduleData.calc.totalInterest;
+    loan.total_repayment = scheduleData.calc.totalRepayment;
+    loan.outstanding_balance = scheduleData.calc.totalRepayment;
+    loan.total_paid = 0;
+    loan.first_due_date = scheduleData.schedule[0]?.due_date || null;
+    loan.final_due_date = scheduleData.schedule[scheduleData.schedule.length - 1]?.due_date || null;
+    loan.sanctioned_at = new Date().toISOString();
+    loan.disbursement_status = 'NOT_DISBURSED';
+    loan.repayment_schedule = scheduleData.schedule;
+
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'SANCTIONED',
+      note: `Final sanction granted by Super Admin for ₹${principal}. Loan Account Number: ${loanAccountNumber}. Ready for disbursement.`,
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    // Save schedule in repayment_schedules collection
+    const schIndex = schedules.findIndex(s => s.loan_id === loan.id);
+    if (schIndex !== -1) {
+      schedules[schIndex].schedule = scheduleData.schedule;
+    } else {
+      schedules.push({ loan_id: loan.id, schedule: scheduleData.schedule });
+    }
+    writeCollection('repayment_schedules', schedules);
+
+    // Send official loan sanction email to registered email
+    const emailResult = await sendLoanSanctionEmail(member.email, member.name, loan);
+
+    // In-app notification
+    createNotification(
+      member.id,
+      'LOAN_SANCTIONED',
+      'Loan Application Sanctioned! | கடன் அனுமதிக்கப்பட்டது',
+      `Your loan of ₹${principal} (Acct: ${loanAccountNumber}) has been officially sanctioned. Disbursal pending.`,
+      loan.id
+    );
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'SANCTION_LOAN', `Sanctioned loan ${loanAccountNumber} of ₹${principal} for ${member.name}`);
+
+    res.json({
+      message: `Loan ${loanAccountNumber} successfully sanctioned! Sanction email dispatched to ${member.email}.`,
+      loan,
+      emailResult
+    });
+  } catch (err) {
+    console.error('Sanction error:', err);
+    res.status(500).json({ error: 'Failed to sanction loan.' });
+  }
+});
+
+// STEP 4: Separate Loan Disbursement Action (Super Admin only)
+app.post('/api/admin/loans/:id/disburse', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_method = 'BANK_TRANSFER', transaction_reference = '', notes = '' } = req.body;
+
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    if (loan.status !== 'SANCTIONED') {
+      return res.status(400).json({ error: `Cannot disburse loan with status ${loan.status}. Loan must be SANCTIONED first.` });
+    }
+
+    if (loan.disbursement_status === 'DISBURSED') {
+      return res.status(400).json({ error: 'Loan has already been disbursed.' });
+    }
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (!member) {
+      return res.status(404).json({ error: 'Associated member not found.' });
+    }
+
+    const disbursedAmount = loan.sanctioned_amount || loan.amount;
+    const disbursementDate = new Date().toISOString().split('T')[0];
+
+    loan.status = 'DISBURSED';
+    loan.disbursement_status = 'DISBURSED';
+    loan.disbursed_amount = disbursedAmount;
+    loan.disbursed_at = new Date().toISOString();
+    loan.disbursed_by = req.user.name;
+    loan.disbursement_payment_method = payment_method;
+    loan.disbursement_reference = transaction_reference || `TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'DISBURSED',
+      note: `Loan disbursed: ₹${disbursedAmount} via ${payment_method}. Ref: ${loan.disbursement_reference}. Repayment schedule is now active.`,
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    // Send official disbursement email
+    const emailResult = await sendLoanDisbursementEmail(member.email, member.name, loan, {
+      amount: disbursedAmount,
+      date: disbursementDate,
+      method: payment_method,
+      reference: loan.disbursement_reference
+    });
+
+    // In-app notification
+    createNotification(
+      member.id,
+      'LOAN_DISBURSED',
+      'Loan Disbursed! | கடன் தொகை வழங்கப்பட்டது',
+      `Your loan of ₹${disbursedAmount} has been disbursed to your account. Your repayment schedule is now active.`,
+      loan.id
+    );
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'DISBURSE_LOAN', `Disbursed ₹${disbursedAmount} for loan ${loan.loan_account_number} (${member.name})`);
+
+    res.json({
+      message: `Loan ${loan.loan_account_number} disbursed successfully! Confirmation email dispatched to ${member.email}.`,
+      loan,
+      emailResult
+    });
+  } catch (err) {
+    console.error('Disbursement error:', err);
+    res.status(500).json({ error: 'Failed to disburse loan.' });
+  }
+});
+
+// Super Admin Reject Loan
+app.post('/api/admin/loans/:id/reject', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    loan.status = 'REJECTED_SUPER_ADMIN';
+    loan.rejection_reason = reason || 'Declined during Super Admin final review.';
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'REJECTED_SUPER_ADMIN',
+      note: reason || 'Declined during Super Admin final review.',
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (member) {
+      await sendLoanRejectionEmail(member.email, member.name, loan, reason, 'Super Admin Final');
+      createNotification(
+        member.id,
+        'LOAN_REJECTED',
+        'Loan Application Declined',
+        `Your loan application was declined by Super Admin. Reason: ${reason || 'Criteria not met.'}`,
+        loan.id
+      );
+    }
+
+    recordAudit(req.user.id, req.user.name, 'SUPER_ADMIN', 'REJECT_LOAN', `Rejected loan ${loan.id} - ${reason}`);
+    res.json({ message: 'Loan rejected by Super Admin.', loan });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reject loan.' });
+  }
+});
+
+// Broadcast announcement
+app.post('/api/admin/announcements', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const { title, message } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required.' });
+    }
+
+    const announcements = readCollection('announcements');
+    const newAnnouncement = {
+      id: uuidv4(),
+      title: title.trim(),
+      message: message.trim(),
+      created_by: req.user.name,
+      created_at: new Date().toISOString()
+    };
+
+    announcements.unshift(newAnnouncement);
+    writeCollection('announcements', announcements);
+
+    // Also notify all users
+    const users = readCollection('users');
+    users.forEach(u => {
+      createNotification(u.id, 'ANNOUNCEMENT', title, message);
+    });
+
+    res.status(201).json({ message: 'Announcement broadcasted successfully.', announcement: newAnnouncement });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create announcement.' });
+  }
+});
+
+// Email outbox logs
+app.get('/api/admin/email-logs', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
+  try {
+    const outbox = readCollection('email_outbox');
+    const legacy = readCollection('emails');
+    // Merge or return outbox
+    res.json(outbox.length > 0 ? outbox : legacy);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch email logs.' });
+  }
+});
+
+// Retry failed email
+app.post('/api/admin/emails/:id/retry', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await retryEmail(id);
+    res.json({ message: 'Email retry attempted.', result });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to retry email delivery.' });
+  }
+});
+
+// ----------------- GROUP ADMIN ROUTES -----------------
+
+app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
+  try {
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    let group = null;
+    if (req.user.role === 'GROUP_ADMIN') {
+      group = groups.find(g => g.group_admin_id === req.user.id || g.id === req.user.group_id);
+    } else if (req.query.group_id) {
+      group = groups.find(g => g.id === req.query.group_id);
+    }
+
+    if (!group) {
+      return res.status(404).json({ error: 'No group assigned to this Group Admin.' });
+    }
+
+    const members = users
+      .filter(u => u.group_id === group.id && u.status === 'APPROVED')
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        phone: u.phone,
+        email: u.email,
+        role: u.role,
+        area: u.area,
+        district: u.district,
+        created_at: u.created_at
+      }));
+
+    res.json({ group, members });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch group details.' });
+  }
+});
+
+// Group loans for Group Admin
+app.get('/api/group-admin/loans', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
+  try {
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+
+    let targetGroupId = req.user.group_id;
+    if (req.user.role === 'GROUP_ADMIN') {
+      const g = groups.find(grp => grp.group_admin_id === req.user.id || grp.id === req.user.group_id);
+      if (g) targetGroupId = g.id;
+    }
+
+    const groupLoans = loans
+      .filter(l => l.group_id === targetGroupId)
+      .map(l => {
+        const member = users.find(u => u.id === l.user_id);
+        return {
+          ...l,
+          member_name: member ? member.name : 'Unknown',
+          member_email: member ? member.email : 'Unknown',
+          member_phone: member ? member.phone : 'Unknown'
+        };
+      });
+
+    res.json(groupLoans);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch group loan requests.' });
+  }
+});
+
+// STEP 2: Group Admin Review & Forward to Super Admin
+app.post('/api/group-admin/loans/:id/forward', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    if (loan.status !== 'PENDING_GROUP_ADMIN') {
+      return res.status(400).json({ error: `Cannot forward loan with current status ${loan.status}.` });
+    }
+
+    loan.status = 'PENDING_SUPER_ADMIN';
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'PENDING_SUPER_ADMIN',
+      note: 'Verified and recommended by Group Admin. Forwarded to Super Admin for final sanction.',
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (member) {
+      createNotification(
+        member.id,
+        'LOAN_FORWARDED',
+        'Loan Verified by Group Admin | குழு நிர்வாகி பரிந்துரைத்துள்ளார்',
+        `Your loan request has been recommended by your Group Admin and submitted to Super Admin for final sanction.`,
+        loan.id
+      );
+    }
+
+    recordAudit(req.user.id, req.user.name, 'GROUP_ADMIN', 'FORWARD_LOAN', `Forwarded loan ${loan.id} to Super Admin`);
+    res.json({ message: 'Loan approved and forwarded to Super Admin for final sanction.', loan });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to forward loan.' });
+  }
+});
+
+// Group Admin Reject Loan
+app.post('/api/group-admin/loans/:id/reject', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+
+    const loanIndex = loans.findIndex(l => l.id === id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan request not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    loan.status = 'REJECTED_GROUP_ADMIN';
+    loan.rejection_reason = reason || 'Declined during Group Admin preliminary assessment.';
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: 'REJECTED_GROUP_ADMIN',
+      note: reason || 'Declined by Group Admin.',
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (member) {
+      await sendLoanRejectionEmail(member.email, member.name, loan, reason, 'Group Admin Preliminary');
+      createNotification(
+        member.id,
+        'LOAN_REJECTED',
+        'Loan Application Declined by Group Admin',
+        `Your loan application was declined. Reason: ${reason || 'Assessment criteria not met.'}`,
+        loan.id
+      );
+    }
+
+    recordAudit(req.user.id, req.user.name, 'GROUP_ADMIN', 'REJECT_LOAN', `Rejected loan ${loan.id} - ${reason}`);
+    res.json({ message: 'Loan rejected by Group Admin.', loan });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reject loan.' });
+  }
+});
+
+// ----------------- MEMBER (USER) ROUTES -----------------
+
+// Member Dashboard
+app.get('/api/member/dashboard', authenticateToken, (req, res) => {
+  try {
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+    const loans = readCollection('loans');
+    const announcements = readCollection('announcements');
+
+    const currentUser = users.find(u => u.id === req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    let group = null;
+    let groupAdmin = null;
+    let fellowMembers = [];
+
+    if (currentUser.group_id) {
+      group = groups.find(g => g.id === currentUser.group_id) || null;
+      if (group && group.group_admin_id) {
+        const ga = users.find(u => u.id === group.group_admin_id);
+        if (ga) {
+          groupAdmin = {
+            id: ga.id,
+            name: ga.name,
+            phone: ga.phone,
+            email: ga.email
+          };
+        }
+      }
+
+      fellowMembers = users
+        .filter(u => u.group_id === currentUser.group_id && u.status === 'APPROVED')
+        .map(u => ({ id: u.id, name: u.name, role: u.role }));
+    }
+
+    const userLoans = loans
+      .filter(l => l.user_id === currentUser.id)
+      .sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
+
+    // Active loan check
+    const activeLoan = checkUserActiveLoan(currentUser.id);
+
+    res.json({
+      user: {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        phone: currentUser.phone,
+        area: currentUser.area,
+        district: currentUser.district,
+        role: currentUser.role,
+        status: currentUser.status
+      },
+      group,
+      groupAdmin,
+      fellowMembers,
+      loans: userLoans,
+      activeLoan,
+      announcements
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load member dashboard.' });
+  }
+});
+
+// Check Active Loan status specifically
+app.get('/api/member/active-loan-check', authenticateToken, (req, res) => {
+  try {
+    const activeLoan = checkUserActiveLoan(req.user.id);
+    if (activeLoan) {
+      return res.json({
+        hasActiveLoan: true,
+        message: 'Your previous loan is still active. Please complete the repayment of your existing loan before applying for another loan. You can track your remaining balance and next repayment date from the My Loans section.',
+        loan: {
+          id: activeLoan.id,
+          loan_account_number: activeLoan.loan_account_number || activeLoan.id,
+          amount: activeLoan.amount,
+          sanctioned_amount: activeLoan.sanctioned_amount || activeLoan.amount,
+          total_paid: activeLoan.total_paid || 0,
+          outstanding_balance: activeLoan.outstanding_balance !== undefined ? activeLoan.outstanding_balance : activeLoan.amount,
+          repayment_frequency: activeLoan.repayment_frequency || 'WEEKLY',
+          next_due_date: activeLoan.next_due_date || 'Upcoming',
+          status: activeLoan.status
+        }
+      });
+    }
+
+    res.json({ hasActiveLoan: false });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to check active loan status.' });
+  }
+});
+
+// STEP 1: Apply for Loan (with strict Active-Loan Prevention & Concurrency Protection)
+app.post('/api/member/loans', authenticateToken, (req, res) => {
+  try {
+    const {
+      amount,
+      purpose,
+      repayment_frequency = 'WEEKLY',
+      tenure_value = 10,
+      payment_mode = 'UPI',
+      upi_email,
+      preferred_first_due_date,
+      notes
+    } = req.body;
+
+    const users = readCollection('users');
+    const loans = readCollection('loans');
+
+    const currentUser = users.find(u => u.id === req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (currentUser.status !== 'APPROVED') {
+      return res.status(403).json({ error: 'Only approved members can request loans.' });
+    }
+
+    if (!currentUser.group_id) {
+      return res.status(400).json({ error: 'You must be allocated to an SHG group before submitting a loan request.' });
+    }
+
+    // MANDATORY BUSINESS RULE: Prevent a second loan while a previous loan is active
+    const activeLoan = checkUserActiveLoan(currentUser.id);
+    if (activeLoan) {
+      return res.status(400).json({
+        error: 'Your previous loan is still active. Please complete the repayment of your existing loan before applying for another loan. You can track your remaining balance and next repayment date from the My Loans section.',
+        activeLoan: {
+          id: activeLoan.id,
+          loan_account_number: activeLoan.loan_account_number || activeLoan.id,
+          amount: activeLoan.amount,
+          outstanding_balance: activeLoan.outstanding_balance !== undefined ? activeLoan.outstanding_balance : activeLoan.amount,
+          status: activeLoan.status
+        }
+      });
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: 'Please enter a valid loan amount.' });
+    }
+
+    // ₹10,000 policy cap
+    if (numAmount > 10000) {
+      return res.status(400).json({ error: 'Maximum loan limit per request is ₹10,000 as per Magalir Kuzhu policy.' });
+    }
+
+    if (!['UPI', 'CASH'].includes(payment_mode)) {
+      return res.status(400).json({ error: 'Payment mode must be either UPI or CASH.' });
+    }
+
+    // UPI verification check
+    if (payment_mode === 'UPI') {
+      if (!upi_email || typeof upi_email !== 'string') {
+        return res.status(400).json({ error: 'UPI disbursal requires entering your registered email ID for verification.' });
+      }
+      if (upi_email.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+        return res.status(400).json({
+          error: `UPI Verification Failed: The entered email does not match your registered email address (${currentUser.email}).`
+        });
+      }
+    }
+
+    const applicationId = `APP-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Live reducing-balance calculation estimate
+    const calc = calculateEmi(numAmount, 12, repayment_frequency, tenure_value);
+
+    const newLoan = {
+      id: uuidv4(),
+      application_id: applicationId,
+      loan_account_number: null, // assigned on sanction
+      user_id: currentUser.id,
+      group_id: currentUser.group_id,
+      amount: numAmount,
+      sanctioned_amount: null,
+      purpose: purpose ? purpose.trim() : 'Small Business & Family Welfare',
+      annual_interest_rate: 12,
+      interest_method: 'REDUCING_BALANCE',
+      repayment_frequency,
+      tenure_value: Number(tenure_value),
+      tenure_unit: repayment_frequency === 'WEEKLY' ? 'Weeks' : 'Months',
+      total_installments: calc.installments,
+      installment_amount: calc.emi,
+      total_interest: calc.totalInterest,
+      total_repayment: calc.totalRepayment,
+      payment_mode,
+      upi_email: payment_mode === 'UPI' ? upi_email.trim().toLowerCase() : null,
+      preferred_first_due_date: preferred_first_due_date || null,
+      notes: notes ? notes.trim() : '',
+      status: 'PENDING_GROUP_ADMIN',
+      disbursement_status: 'NOT_DISBURSED',
+      total_paid: 0,
+      outstanding_balance: calc.totalRepayment,
+      requested_at: new Date().toISOString(),
+      timeline: [
+        {
+          status: 'PENDING_GROUP_ADMIN',
+          note: `Loan application for ₹${numAmount} submitted (${repayment_frequency}, ${tenure_value} ${repayment_frequency === 'WEEKLY' ? 'weeks' : 'months'}). Awaiting Group Admin review.`,
+          by_name: currentUser.name,
+          at: new Date().toISOString()
+        }
+      ]
+    };
+
+    loans.unshift(newLoan);
+    writeCollection('loans', loans);
+
+    // Notify Group Admin
+    const groups = readCollection('groups');
+    const grp = groups.find(g => g.id === currentUser.group_id);
+    if (grp && grp.group_admin_id) {
+      createNotification(
+        grp.group_admin_id,
+        'NEW_LOAN_APPLICATION',
+        'New Loan Application Submitted | புதிய கடன் விண்ணப்பம்',
+        `${currentUser.name} has submitted a loan application of ₹${numAmount} for review.`,
+        newLoan.id
+      );
+    }
+
+    createNotification(
+      currentUser.id,
+      'LOAN_SUBMITTED',
+      'Loan Application Submitted',
+      'Your loan application has been submitted successfully and is awaiting Group Admin review.',
+      newLoan.id
+    );
+
+    recordAudit(currentUser.id, currentUser.name, 'USER', 'APPLY_LOAN', `Submitted loan application ${applicationId} for ₹${numAmount}`);
+
+    res.status(201).json({
+      message: 'Your loan application has been submitted successfully and is awaiting Group Admin review.',
+      loan: newLoan
+    });
+  } catch (err) {
+    console.error('Loan submission error:', err);
+    res.status(500).json({ error: 'Failed to submit loan application.' });
+  }
+});
+
+// ----------------- REPAYMENT & LEDGER ROUTES -----------------
+
+// Record Repayment (by Group Admin or Super Admin)
+app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), async (req, res) => {
+  try {
+    const {
+      loan_id,
+      amount,
+      payment_method = 'CASH',
+      transaction_reference = '',
+      payment_date = new Date().toISOString().split('T')[0],
+      notes = ''
+    } = req.body;
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: 'Please enter a valid positive payment amount.' });
+    }
+
+    if (!['CASH', 'UPI'].includes(payment_method)) {
+      return res.status(400).json({ error: 'Payment method must be CASH or UPI.' });
+    }
+
+    const loans = readCollection('loans');
+    const users = readCollection('users');
+    const repayments = readCollection('repayments');
+    const schedules = readCollection('repayment_schedules');
+
+    const loanIndex = loans.findIndex(l => l.id === loan_id);
+    if (loanIndex === -1) {
+      return res.status(404).json({ error: 'Loan not found.' });
+    }
+
+    const loan = loans[loanIndex];
+    if (loan.status !== 'DISBURSED' && loan.status !== 'APPROVED') {
+      return res.status(400).json({ error: 'Repayments can only be recorded for disbursed loans.' });
+    }
+
+    const currentBalance = loan.outstanding_balance !== undefined ? loan.outstanding_balance : loan.amount;
+    if (currentBalance <= 0) {
+      return res.status(400).json({ error: 'This loan is already fully repaid!' });
+    }
+
+    if (numAmount > currentBalance + 0.05) {
+      return res.status(400).json({ error: `Amount cannot exceed remaining balance of ₹${currentBalance}.` });
+    }
+
+    const member = users.find(u => u.id === loan.user_id);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found.' });
+    }
+
+    // Allocate payment against schedule
+    let schedule = loan.repayment_schedule || [];
+    if (schedule.length === 0) {
+      const savedSch = schedules.find(s => s.loan_id === loan.id);
+      if (savedSch) schedule = savedSch.schedule;
+    }
+
+    const allocation = allocateRepayment(schedule, numAmount);
+
+    // Update loan totals
+    loan.total_paid = Math.round(((loan.total_paid || 0) + numAmount) * 100) / 100;
+    loan.principal_paid = Math.round(((loan.principal_paid || 0) + allocation.allocatedPrincipal) * 100) / 100;
+    loan.interest_paid = Math.round(((loan.interest_paid || 0) + allocation.allocatedInterest) * 100) / 100;
+    loan.outstanding_balance = Math.max(0, Math.round((currentBalance - numAmount) * 100) / 100);
+    loan.next_due_date = allocation.nextDueDate;
+    loan.repayment_schedule = allocation.updatedSchedule;
+
+    const isFullyRepaid = loan.outstanding_balance <= 0.01;
+    if (isFullyRepaid) {
+      loan.status = 'COMPLETED';
+      loan.completed_at = new Date().toISOString();
+    }
+
+    // Unique Receipt Number: MK-RCP-YYYYMMDD-XXXX
+    const datePart = payment_date.replace(/-/g, '');
+    const randPart = Math.floor(1000 + Math.random() * 9000);
+    const receiptNumber = `MK-RCP-${datePart}-${randPart}`;
+
+    const receipt = {
+      id: uuidv4(),
+      receipt_number: receiptNumber,
+      loan_id: loan.id,
+      loan_account_number: loan.loan_account_number || loan.id,
+      member_id: member.id,
+      member_name: member.name,
+      amount: numAmount,
+      payment_method,
+      transaction_reference: payment_method === 'UPI' ? transaction_reference || 'N/A' : null,
+      payment_date,
+      total_paid: loan.total_paid,
+      remaining_balance: loan.outstanding_balance,
+      next_due_date: loan.next_due_date,
+      recorded_by: req.user.name,
+      recorded_by_id: req.user.id,
+      notes,
+      created_at: new Date().toISOString()
+    };
+
+    repayments.unshift(receipt);
+    writeCollection('repayments', repayments);
+
+    loan.timeline = loan.timeline || [];
+    loan.timeline.push({
+      status: isFullyRepaid ? 'COMPLETED' : 'REPAYMENT_RECORDED',
+      note: `Repayment of ₹${numAmount} recorded via ${payment_method}. Receipt: ${receiptNumber}. Remaining balance: ₹${loan.outstanding_balance}.`,
+      by_name: req.user.name,
+      at: new Date().toISOString()
+    });
+
+    writeCollection('loans', loans);
+
+    // Sync schedule collection
+    const schIdx = schedules.findIndex(s => s.loan_id === loan.id);
+    if (schIdx !== -1) {
+      schedules[schIdx].schedule = allocation.updatedSchedule;
+      writeCollection('repayment_schedules', schedules);
+    }
+
+    // Trigger required automated email notification to member's registered email
+    let emailResult = null;
+    if (payment_method === 'CASH') {
+      emailResult = await sendCashRepaymentEmail(member.email, member.name, receipt);
+    } else {
+      emailResult = await sendUpiRepaymentEmail(member.email, member.name, receipt);
+    }
+
+    // In-app notification
+    createNotification(
+      member.id,
+      'REPAYMENT_CONFIRMED',
+      isFullyRepaid ? 'Loan Fully Repaid! 🎉 | கடன் முற்றிலும் செலுத்தப்பட்டது' : 'Repayment Recorded | தவணை பதிவு செய்யப்பட்டது',
+      `Payment of ₹${numAmount} (${payment_method}) recorded. Receipt: ${receiptNumber}. Remaining: ₹${loan.outstanding_balance}.`,
+      loan.id
+    );
+
+    recordAudit(req.user.id, req.user.name, req.user.role, 'RECORD_REPAYMENT', `Recorded ${payment_method} payment of ₹${numAmount} for loan ${loan.loan_account_number}`);
+
+    res.json({
+      message: `Repayment of ₹${numAmount} successfully recorded! Receipt ${receiptNumber} generated and dispatched to ${member.email}.`,
+      receipt,
+      loan,
+      emailResult
+    });
+  } catch (err) {
+    console.error('Repayment error:', err);
+    res.status(500).json({ error: 'Failed to record repayment.' });
+  }
+});
+
+// Full Ledger and Repayment History for a Loan
+app.get('/api/loans/:id/ledger', authenticateToken, (req, res) => {
+  try {
+    const { id } = req.params;
+    const loans = readCollection('loans');
+    const repayments = readCollection('repayments');
+    const users = readCollection('users');
+
+    const loan = loans.find(l => l.id === id);
+    if (!loan) {
+      return res.status(404).json({ error: 'Loan not found.' });
+    }
+
+    // Privacy control: Member can only view their own loan
+    if (req.user.role === 'USER' && loan.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied: You cannot view another member’s ledger.' });
+    }
+
+    const member = users.find(u => u.id === loan.user_id);
+    const loanRepayments = repayments.filter(r => r.loan_id === loan.id);
+
+    res.json({
+      loan,
+      member: member ? { name: member.name, email: member.email, phone: member.phone } : null,
+      repayments: loanRepayments,
+      schedule: loan.repayment_schedule || []
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch loan ledger.' });
+  }
+});
+
+// ----------------- IN-APP NOTIFICATIONS ROUTES -----------------
+app.get('/api/notifications', authenticateToken, (req, res) => {
+  try {
+    const notifications = readCollection('notifications');
+    const userNotifs = notifications
+      .filter(n => n.user_id === req.user.id)
+      .slice(0, 30);
+    const unreadCount = userNotifs.filter(n => !n.is_read).length;
+
+    res.json({ notifications: userNotifs, unreadCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch notifications.' });
+  }
+});
+
+app.post('/api/notifications/:id/read', authenticateToken, (req, res) => {
+  try {
+    const { id } = req.params;
+    const notifications = readCollection('notifications');
+    const notif = notifications.find(n => n.id === id && n.user_id === req.user.id);
+    if (notif) {
+      notif.is_read = true;
+      writeCollection('notifications', notifications);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update notification.' });
+  }
+});
+
+app.post('/api/notifications/mark-all-read', authenticateToken, (req, res) => {
+  try {
+    const notifications = readCollection('notifications');
+    notifications.forEach(n => {
+      if (n.user_id === req.user.id) n.is_read = true;
+    });
+    writeCollection('notifications', notifications);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark notifications read.' });
+  }
+});
+
+// ----------------- GROUP CHAT ROUTES -----------------
+app.get('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
+  try {
+    const { groupId } = req.params;
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.group_id !== groupId) {
+      return res.status(403).json({ error: 'Access forbidden: You do not have permission to view this group chat.' });
+    }
+
+    const messages = readCollection('messages');
+    const groupMsgs = messages.filter(m => m.group_id === groupId);
+    res.json(groupMsgs);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages.' });
+  }
+});
+
+app.post('/api/groups/:groupId/messages', authenticateToken, (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Message text cannot be empty.' });
+    }
+
+    if (req.user.role !== 'SUPER_ADMIN' && req.user.group_id !== groupId) {
+      return res.status(403).json({ error: 'Access forbidden: You are not a member of this group.' });
+    }
+
+    const messages = readCollection('messages');
+    const newMsg = {
+      id: uuidv4(),
+      group_id: groupId,
+      sender_id: req.user.id,
+      sender_name: req.user.name,
+      sender_role: req.user.role,
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    messages.push(newMsg);
+    writeCollection('messages', messages);
+    res.status(201).json(newMsg);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send message.' });
+  }
+});
+
+// ----------------- ANNOUNCEMENTS -----------------
+app.get('/api/announcements', authenticateToken, (req, res) => {
+  try {
+    const announcements = readCollection('announcements');
+    res.json(announcements);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch announcements.' });
+  }
+});
+
+// Serve built frontend assets
+const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
+app.use(express.static(clientDistPath));
+
+// Fallback to index.html for client-side routing on non-API routes (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next();
+  }
+  const indexPath = path.join(clientDistPath, 'index.html');
+  res.sendFile(indexPath, err => {
+    if (err) {
+      res.status(404).send('Frontend not built. Please run "npm run build" in the client directory.');
+    }
+  });
+});
+
+// ----------------- SERVER START -----------------
+app.listen(PORT, () => {
+  console.log(`[SERVER] Magalir Kuzhu Portal Combined Server running on port ${PORT}`);
+  console.log(`[SERVER] Serving API on /api and Frontend on http://localhost:${PORT}`);
+});
+

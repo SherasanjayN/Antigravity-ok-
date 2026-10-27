@@ -1,0 +1,24 @@
+{
+  "name": "magalir-kuzhu-management-system",
+  "version": "1.0.0",
+  "description": "Professional SHG Loan Management, Approval, Repayment & Notification Platform",
+  "scripts": {
+    "postinstall": "npm --prefix client install && npm --prefix server install",
+    "build": "npm --prefix client run build",
+    "server": "npm --prefix server start",
+    "client": "npm --prefix client run dev",
+    "start": "npm run build && npm run server",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "keywords": [
+    "magalir-kuzhu",
+    "shg",
+    "microfinance",
+    "tamil-nadu",
+    "mongodb",
+    "react",
+    "node"
+  ],
+  "author": "",
+  "license": "ISC"
+}

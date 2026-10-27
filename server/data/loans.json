@@ -1,0 +1,95 @@
+[
+  {
+    "id": "df328207-3326-4c69-b4da-d735495280f3",
+    "user_id": "db449fdc-9bb7-4dc7-b63a-a0dcd8f079a6",
+    "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
+    "amount": 5000,
+    "payment_mode": "UPI",
+    "upi_email": "sherasanjay0404@gmail.com",
+    "status": "APPROVED",
+    "requested_at": "2026-10-27T12:56:47.656Z",
+    "timeline": [
+      {
+        "status": "PENDING_GROUP_ADMIN",
+        "note": "Loan application for ₹5000 submitted via UPI.",
+        "by_name": "latha",
+        "at": "2026-10-27T12:56:47.656Z"
+      },
+      {
+        "status": "PENDING_SUPER_ADMIN",
+        "note": "Verified and recommended by Group Admin. Forwarded to Super Admin for final sanction.",
+        "by_name": "Kavitha Murugan",
+        "at": "2026-10-27T12:57:34.226Z"
+      },
+      {
+        "status": "APPROVED",
+        "note": "Final loan sanction granted by Super Admin.",
+        "by_name": "Super Admin",
+        "at": "2026-10-27T12:58:09.568Z"
+      }
+    ],
+    "sanctioned_at": "2026-10-27T12:58:09.568Z"
+  },
+  {
+    "id": "90afbd17-d203-4764-a3e4-c57e65a1b772",
+    "user_id": "ed4ef7e0-ce78-4c39-82a9-73ef1d5d27a0",
+    "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
+    "amount": 5000,
+    "payment_mode": "CASH",
+    "upi_email": null,
+    "status": "APPROVED",
+    "requested_at": "2026-10-27T12:43:57.504Z",
+    "timeline": [
+      {
+        "status": "PENDING_GROUP_ADMIN",
+        "note": "Loan application for ₹5000 submitted via CASH.",
+        "by_name": "Lakshmi Raman",
+        "at": "2026-10-27T12:43:57.504Z"
+      },
+      {
+        "status": "PENDING_SUPER_ADMIN",
+        "note": "Verified and recommended by Group Admin. Forwarded to Super Admin for final sanction.",
+        "by_name": "Kavitha Murugan",
+        "at": "2026-10-27T12:52:13.738Z"
+      },
+      {
+        "status": "APPROVED",
+        "note": "Final loan sanction granted by Super Admin.",
+        "by_name": "Super Admin",
+        "at": "2026-10-27T12:53:42.428Z"
+      }
+    ],
+    "sanctioned_at": "2026-10-27T12:53:42.428Z"
+  },
+  {
+    "id": "18ebd2cb-6873-43e1-a5ba-8660eac02d2b",
+    "user_id": "ed4ef7e0-ce78-4c39-82a9-73ef1d5d27a0",
+    "group_id": "b623e3d0-fdc7-4aa0-bc41-b1e9e5cf6b93",
+    "amount": 8000,
+    "payment_mode": "UPI",
+    "upi_email": "lakshmi.r@example.com",
+    "status": "APPROVED",
+    "requested_at": "2026-10-27T10:42:58.551Z",
+    "timeline": [
+      {
+        "status": "PENDING_GROUP_ADMIN",
+        "note": "Loan application for ₹8000 submitted via UPI.",
+        "by_name": "Lakshmi Raman",
+        "at": "2026-10-27T10:42:58.551Z"
+      },
+      {
+        "status": "PENDING_SUPER_ADMIN",
+        "note": "Verified and recommended by Group Admin. Forwarded to Super Admin for final sanction.",
+        "by_name": "Kavitha Murugan",
+        "at": "2026-10-27T10:42:58.790Z"
+      },
+      {
+        "status": "APPROVED",
+        "note": "Final loan sanction granted by Super Admin.",
+        "by_name": "Super Admin",
+        "at": "2026-10-27T10:42:59.025Z"
+      }
+    ],
+    "sanctioned_at": "2026-10-27T10:42:59.025Z"
+  }
+]

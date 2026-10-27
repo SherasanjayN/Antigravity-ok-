@@ -1,0 +1,38 @@
+[
+  {
+    "id": "72efe7ab-4e12-451f-ada5-ff0e2f69b998",
+    "to": "sherasanjay0404@gmail.com",
+    "recipient_name": "latha",
+    "amount": 5000,
+    "subject": "Loan Sanctioned - Magalir Kuzhu Management System",
+    "body": "Dear latha, Your loan request of ₹5000 has been sanctioned successfully!",
+    "sent_at": "2026-10-27T12:58:09.571Z",
+    "status": "FAILED",
+    "preview_url": null,
+    "details": "connect ETIMEDOUT 95.216.108.161:587"
+  },
+  {
+    "id": "4241645a-19c8-4045-a370-29e994fd702a",
+    "to": "lakshmi.r@example.com",
+    "recipient_name": "Lakshmi Raman",
+    "amount": 5000,
+    "subject": "Loan Sanctioned - Magalir Kuzhu Management System",
+    "body": "Dear Lakshmi Raman, Your loan request of ₹5000 has been sanctioned successfully!",
+    "sent_at": "2026-10-27T12:53:42.431Z",
+    "status": "FAILED",
+    "preview_url": null,
+    "details": "connect ETIMEDOUT 95.216.108.161:587"
+  },
+  {
+    "id": "f7da0148-2db6-4707-88b8-f2c07d0ec86c",
+    "to": "lakshmi.r@example.com",
+    "recipient_name": "Lakshmi Raman",
+    "amount": 8000,
+    "subject": "Loan Sanctioned - Magalir Kuzhu Management System",
+    "body": "Dear Lakshmi Raman, Your loan request of ₹8000 has been sanctioned successfully!",
+    "sent_at": "2026-10-27T10:42:59.027Z",
+    "status": "SENT",
+    "preview_url": "https://ethereal.email/message/auCANQmyWJQGpeOLauCAQXOU4XPkrPRsAAAAARbihc-cVodTGt9dc7MxrV8",
+    "details": "<2f1242f4-f712-f0a3-1042-5ce6bc7b6fe5@magalirkuzhu.org>"
+  }
+]
