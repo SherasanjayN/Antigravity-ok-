@@ -43,6 +43,7 @@ export default function SheAiAssistant({ currentUser }) {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Text-to-speech for AI responses
   useEffect(() => {
@@ -58,7 +59,6 @@ export default function SheAiAssistant({ currentUser }) {
       }
     }
   }, [messages]);
-  };
 
   useEffect(() => {
     if (isOpen) {
