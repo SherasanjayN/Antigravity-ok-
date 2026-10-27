@@ -75,12 +75,16 @@ export default function SuperAdminDashboard({ currentUser }) {
         flexDirection: 'column',
         gap: '0.35rem'
       }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Magalir Connect AI
-          </div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary-700)', marginTop: '0.15rem' }}>
-            Super Admin Console
-          </div>
+        <div style={{
+          padding: '0.5rem 0.75rem 1rem 0.75rem',
+          fontSize: '0.75rem',
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: 'var(--text-muted)'
+        }}>
+          Super Admin Console
+        </div>
 
         {navItems.map((item) => {
           const Icon = item.icon;

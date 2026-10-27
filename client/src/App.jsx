@@ -89,7 +89,7 @@ export default function App() {
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={{ fontWeight: 600, color: '#065f46' }}>
-            Magalir Connect AI | மகளிர் கனெக்ட்...
+            Initializing Magalir Kuzhu Portal | மகளிர் குழு...
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function App() {
             <MemberDashboard currentUser={currentUser} />
           )}
 
-          {/* SHE AI - Smart Empowerment Intelligence Assistant */}
+          {/* SHE AI - Gemini Intelligence Assistant */}
           <SheAiAssistant currentUser={currentUser} />
         </>
       )}

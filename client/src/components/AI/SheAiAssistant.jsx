@@ -47,18 +47,22 @@ export default function SheAiAssistant({ currentUser }) {
 
   // Text-to-speech for AI responses
   useEffect(() => {
-    if (messages.length) {
+    if (messages.length && 'speechSynthesis' in window) {
       const lastMsg = messages[messages.length - 1];
       if (lastMsg.sender === 'she_ai') {
-        const utter = new SpeechSynthesisUtterance(lastMsg.text);
+        window.speechSynthesis.cancel();
+        // Strip markdown stars/formatting for cleaner speech
+        const cleanText = lastMsg.text.replace(/[*#_`|]/g, ' ').replace(/\s+/g, ' ').trim();
+        const utter = new SpeechSynthesisUtterance(cleanText);
         utter.lang = lang === 'ta' ? 'ta-IN' : 'en-US';
+        utter.rate = 0.95;
         const voices = window.speechSynthesis.getVoices();
-        const voice = voices.find(v => v.lang.startsWith(utter.lang));
+        const voice = voices.find(v => v.lang.startsWith(utter.lang) || (lang === 'ta' && v.lang.includes('ta')));
         if (voice) utter.voice = voice;
         window.speechSynthesis.speak(utter);
       }
     }
-  }, [messages]);
+  }, [messages, lang]);
 
   useEffect(() => {
     if (isOpen) {
@@ -95,17 +99,29 @@ export default function SheAiAssistant({ currentUser }) {
     await new Promise(r => setTimeout(r, 650));
 
     // 0. Loan Amount + Weekly/Monthly EMI Calculation Request
-    const hasAmount = /(?:₹)?\s*([0-9,]+)/.test(q);
+    // Check digits or Tamil keywords
+    let extractedAmount = null;
+    const digitMatch = q.match(/(?:₹)?\s*([0-9,]{3,7})/);
+    if (digitMatch) {
+      extractedAmount = parseInt(digitMatch[1].replace(/,/g, ''), 10);
+    } else if (q.includes('5000') || q.includes('5,000') || q.includes('ஐயாயிரம்')) {
+      extractedAmount = 5000;
+    } else if (q.includes('10000') || q.includes('10,000') || q.includes('பத்தாயிரம்')) {
+      extractedAmount = 10000;
+    } else if (q.includes('2000') || q.includes('2,000') || q.includes('இரண்டாயிரம்')) {
+      extractedAmount = 2000;
+    }
+
     const isWeeklyRequest = q.includes('week') || q.includes('weekly') || q.includes('வார') || q.includes('வாரம்') || q.includes('வாரத்துக்கு');
     const isMonthlyRequest = q.includes('month') || q.includes('monthly') || q.includes('மாத') || q.includes('மாதம்');
-    const isCalcRequest = q.includes('calculate') || q.includes('calc') || q.includes('கால்குலேட்') || q.includes('கணக்கு') || q.includes('சொல்லு') || q.includes('emi');
+    const isCalcRequest = q.includes('calculate') || q.includes('calc') || q.includes('கால்குலேட்') || q.includes('கணக்கு') || q.includes('சொல்லு') || q.includes('emi') || q.includes('வேணும்') || q.includes('வேண்டும்') || q.includes('loan') || q.includes('கடன்') || q.includes('தவணை');
 
-    if (hasAmount && (isWeeklyRequest || isMonthlyRequest) && (isCalcRequest || q.includes('loan') || q.includes('கடன்'))) {
-      const amountMatch = q.match(/(?:₹)?\s*([0-9,]+)/);
-      const principal = amountMatch ? parseInt(amountMatch[1].replace(/,/g, ''), 10) : 5000;
+    if (extractedAmount && (isWeeklyRequest || isMonthlyRequest || isCalcRequest)) {
+      const principal = extractedAmount;
       const annualRate = 0.12; // 12% annual
+      const forceWeekly = !isMonthlyRequest; // Default to weekly for SHG microloans
 
-      if (isWeeklyRequest) {
+      if (isWeeklyRequest || forceWeekly) {
         const weeklyRate = annualRate / 52;
         const tenures = [8, 10, 12];
         const rows = tenures.map(w => {
@@ -136,7 +152,42 @@ export default function SheAiAssistant({ currentUser }) {
       }
     }
 
-    // 1. Loan Limits & Rules
+    // 1. How to Apply for a Loan (Specific guidance requested by user)
+    if (
+      q.includes('எப்படி') && (q.includes('லோன்') || q.includes('கடன்') || q.includes('அப்ளை')) ||
+      q.includes('how to apply') || q.includes('apply for loan') || q.includes('apply loan') ||
+      q.includes('விண்ணப்பிப்பது எப்படி') || q.includes('விண்ணப்பிக்க வேண்டும்')
+    ) {
+      if (isTa) {
+        return `📝 **மகளிர் குழுவில் கடன் விண்ணப்பிக்கும் எளிய வழிமுறைகள்:**
+
+1. **டாஷ்போர்டில் "Loan Application" கிளிக் செய்யவும்:** உங்கள் முகப்பு பக்கத்தில் உள்ள **"கடன் விண்ணப்பம்"** அல்லது **"My Loans"** பகுதிக்குச் சென்று **+ Apply Loan** பொத்தானை அழுத்தவும்.
+2. **தொகை & தவணை முறை தேர்வு:** ₹1,000 முதல் ₹10,000 வரை தேவைப்படும் தொகையைத் தேர்ந்தெடுத்து, **வாராந்திர (Weekly)** அல்லது **மாதாந்திர (Monthly)** தவணையை தேர்வு செய்யவும்.
+3. **வழங்கல் முறை (Payment Mode):** 
+   - **Cash (ரொக்கம்):** குழு தலைவரிடம் நேரடியாகப் பெற.
+   - **UPI:** உங்கள் பதிவு செய்யப்பட்ட மின்னஞ்சல் முகவரியுடன் உடனடி பணப்பரிவர்த்தனைக்கு.
+4. **3-நிலை அனுமதி:**
+   - உங்கள் விண்ணப்பம் முதலில் உங்கள் **குழு தலைவரிடம் (Group Admin)** செல்லும்.
+   - குழு தலைவர் சரிபார்த்து **முதன்மை நிர்வாகிக்கு (Super Admin)** பரிந்துரைப்பார்.
+   - முதன்மை நிர்வாகி ஒப்புதல் வழங்கியதும் உங்களுக்கு மின்னஞ்சல் மற்றும் ரசீதுடன் கடன் கணக்கு எண் உருவாக்கப்படும்!
+
+💡 *குறிப்பு: நீங்கள் ஏற்கனவே வாங்கிய கடனை முழுமையாக செலுத்திய பின்னரே அடுத்த கடனுக்கு விண்ணப்பிக்க முடியும்.*`;
+      } else {
+        return `📝 **How to Apply for a Loan in Magalir Kuzhu Portal:**
+
+1. **Click "Apply Loan":** Go to your **My Loans** tab or click the **Apply Loan** button on your dashboard.
+2. **Select Amount & Frequency:** Enter loan amount (up to ₹10,000) and choose **Weekly** (8, 10, or 12 weeks) or **Monthly** (3, 6, or 12 months) frequency.
+3. **Choose Disbursement Mode:** Select **Cash** (direct from Group Admin) or **UPI** (using your registered verified email).
+4. **3-Tier Approval Flow:**
+   - **Stage 1:** Application submitted to your **Group Admin** for initial review.
+   - **Stage 2:** Forwarded to **Super Admin** for final sanction.
+   - **Stage 3:** Official Sanction Letter with Loan Account Number is emailed to you and funds are disbursed!
+
+💡 *Note: Only members without an active ongoing loan can submit a new loan request.*`;
+      }
+    }
+
+    // 2. Loan Limits & Rules
     if (q.includes('loan') || q.includes('limit') || q.includes('rule') || q.includes('கடன்') || q.includes('வரம்பு') || q.includes('விதி')) {
       if (isTa) {
         return `📌 **மகளிர் குழு கடன் விதிகள் & வரம்புகள்:**
