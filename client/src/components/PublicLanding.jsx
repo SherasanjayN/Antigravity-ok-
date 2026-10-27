@@ -43,7 +43,9 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
             lineHeight: 1.2,
             letterSpacing: '-0.02em'
           }}>
-            {t('app_tamil_title')} • {t('app_title')}
+            {lang === 'ta'
+              ? 'மகளிர் கனெக்ட் AI'
+              : 'Magalir Connect AI'}
           </h1>
 
           <p style={{
@@ -54,8 +56,8 @@ export default function PublicLanding({ onLoginSuccess, onRegisterSuccess, onPen
             lineHeight: 1.6
           }}>
             {lang === 'ta'
-              ? 'சுய உதவிக் குழு உறுப்பினர்களுக்கான வெளிப்படையான 3-நிலை கடன் ஒப்புதல், வாராந்திர/மாதாந்திர தவணைக் கணக்கு ஏடு, தானியங்கி மின்னஞ்சல் ரசீதுகள் மற்றும் நேரடி குழு அரட்டை தளம்.'
-              : 'A transparent digital financial platform for Self-Help Groups (SHGs). Empowering rural women with multi-tier loan approvals, reducing-balance EMI calculators, automated email receipts, and real-time community engagement.'}
+              ? 'கிராமப்புற பெண்களின் சுய உதவிக் குழுக்கான அறிவார்ந்த கடன் & குழு மேலாண்மை அமைப்பு. 3-நிலை கடன் ஒப்புதல், SHE AI உதவியாளர், EMI கணக்கீடு, SOS உதவி மற்றும் நேரடி குழு அரட்டை வசதியுடன்.'
+              : 'A Smart Loan and Group Management System for Rural Women\'s Self-Help Groups with Tamil. Featuring 3-tier loan approvals, bilingual SHE AI assistant, EMI calculator, SOS helpline, and real-time group chat.'}
           </p>
 
           {/* Key Value Points */}
