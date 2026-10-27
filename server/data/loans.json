@@ -1,5 +1,41 @@
 [
   {
+    "id": "87639b17-4113-468b-b44c-283754477386",
+    "application_id": "APP-GA-MEM-6640",
+    "loan_account_number": null,
+    "loan_sequence_number": 1,
+    "user_id": "usr-admin-grp-chn-01",
+    "group_id": "grp-chn-01",
+    "amount": 4000,
+    "sanctioned_amount": null,
+    "purpose": "Store inventory restocking",
+    "annual_interest_rate": 12,
+    "interest_method": "REDUCING_BALANCE",
+    "repayment_frequency": "MONTHLY",
+    "tenure_value": 6,
+    "tenure_unit": "Months",
+    "total_installments": 6,
+    "installment_amount": 690.19,
+    "total_interest": 141.16,
+    "total_repayment": 4141.16,
+    "payment_mode": "CASH",
+    "upi_email": null,
+    "notes": "Initiated by Group Admin Kavitha Murugan",
+    "status": "PENDING_SUPER_ADMIN",
+    "disbursement_status": "NOT_DISBURSED",
+    "total_paid": 0,
+    "outstanding_balance": 4141.16,
+    "requested_at": "2026-10-27T21:30:02.493Z",
+    "timeline": [
+      {
+        "status": "PENDING_SUPER_ADMIN",
+        "note": "Loan application for ₹4000 (MONTHLY, 6 months) entered by Group Admin Kavitha Murugan and forwarded to Super Admin for sanction.",
+        "by_name": "Kavitha Murugan",
+        "at": "2026-10-27T21:30:02.493Z"
+      }
+    ]
+  },
+  {
     "id": "ln-usr-grp-chn-01-m1-01",
     "application_id": "APP-2026-3001",
     "loan_account_number": "MK-LN-2026-1100",

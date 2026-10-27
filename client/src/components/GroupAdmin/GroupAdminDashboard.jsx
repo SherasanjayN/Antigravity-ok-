@@ -59,6 +59,61 @@ export default function GroupAdminDashboard({ currentUser }) {
   const [submittingLoan, setSubmittingLoan] = useState(false);
   const [loanFormError, setLoanFormError] = useState('');
 
+  // Group Admin Add Loan for Member Modal
+  const [showMemberLoanModal, setShowMemberLoanModal] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [memLoanAmount, setMemLoanAmount] = useState(5000);
+  const [memLoanPurpose, setMemLoanPurpose] = useState('Livelihood & Small Enterprise');
+  const [memLoanFrequency, setMemLoanFrequency] = useState('WEEKLY');
+  const [memLoanTenure, setMemLoanTenure] = useState(10);
+  const [memLoanMode, setMemLoanMode] = useState('CASH');
+  const [submittingMemLoan, setSubmittingMemLoan] = useState(false);
+  const [memLoanError, setMemLoanError] = useState('');
+
+  const handleAddMemberLoan = async (e) => {
+    e.preventDefault();
+    setMemLoanError('');
+
+    if (!selectedMemberId) {
+      setMemLoanError('Please select a group member.');
+      return;
+    }
+
+    const numAmt = Number(memLoanAmount);
+    if (!memLoanAmount || isNaN(numAmt) || numAmt <= 0) {
+      setMemLoanError('Please enter a valid loan amount.');
+      return;
+    }
+
+    if (numAmt > 10000) {
+      setMemLoanError('Maximum loan limit is ₹10,000 as per SHG policy.');
+      return;
+    }
+
+    setSubmittingMemLoan(true);
+    try {
+      const res = await api.groupAdmin.addMemberLoan({
+        member_id: selectedMemberId,
+        amount: numAmt,
+        purpose: memLoanPurpose,
+        repayment_frequency: memLoanFrequency,
+        tenure_value: memLoanTenure,
+        payment_mode: memLoanMode
+      });
+
+      setActionSuccess(res.message || 'Member loan created successfully.');
+      setShowMemberLoanModal(false);
+      setSelectedMemberId('');
+      setMemLoanAmount(5000);
+      await loadData();
+      setTimeout(() => setActionSuccess(''), 5000);
+    } catch (err) {
+      setMemLoanError(err.message || 'Failed to add member loan.');
+    } finally {
+      setSubmittingMemLoan(false);
+    }
+  };
+
   const handleApplyLoan = async (e) => {
     e.preventDefault();
     setLoanFormError('');
@@ -340,22 +395,42 @@ export default function GroupAdminDashboard({ currentUser }) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowApplyModal(true)}
-                className="btn btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '0.65rem 1.25rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 700
-                }}
-              >
-                <Plus size={16} />
-                <span>{lang === 'ta' ? '+ கடன் கோரிக்கை (தலைவர்)' : '+ Request Loan Amount'}</span>
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMemberLoanModal(true)}
+                  className="btn btn-primary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    backgroundColor: '#047857'
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>{lang === 'ta' ? '+ உறுப்பினர் கடன் சேர் (Weekly/Monthly)' : '+ Add Member Loan (Weekly/Monthly)'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowApplyModal(true)}
+                  className="btn btn-secondary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.9rem',
+                    fontWeight: 700
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>{lang === 'ta' ? '+ தலைவர் கடன் கோரிக்கை' : '+ Admin Loan Request'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Metrics */}
@@ -559,12 +634,11 @@ export default function GroupAdminDashboard({ currentUser }) {
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Completed Loans</th>
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Repayment Score</th>
                     <th style={{ padding: '10px 14px' }}>Current Balance</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>4th Loan Eligibility</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {members.map(m => {
-                    const isEligibleFor4th = m.eligibility ? m.eligibility.eligible : false;
                     const score = m.repayment_score !== undefined ? m.repayment_score : 100;
                     const completed = m.completed_loans || 0;
                     const balance = m.remaining_balance || 0;
@@ -600,18 +674,25 @@ export default function GroupAdminDashboard({ currentUser }) {
                           ₹{balance}
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: '14px',
-                            fontWeight: 800,
-                            fontSize: '0.75rem',
-                            backgroundColor: isEligibleFor4th ? '#dcfce7' : '#fee2e2',
-                            color: isEligibleFor4th ? '#15803d' : '#b91c1c',
-                            border: isEligibleFor4th ? '1px solid #86efac' : '1px solid #fca5a5'
-                          }} title={m.eligibility?.reason || ''}>
-                            {isEligibleFor4th ? '🟢 Eligible' : '🔴 Not Eligible'}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMemberId(m.id);
+                              setShowMemberLoanModal(true);
+                            }}
+                            className="btn btn-sm btn-primary"
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Plus size={13} />
+                            <span>{lang === 'ta' ? 'கடன் சேர்' : '+ Add Loan'}</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -1136,6 +1217,206 @@ export default function GroupAdminDashboard({ currentUser }) {
           onClose={() => setSelectedLedgerLoanId(null)}
           onPaymentSuccess={() => loadData()}
         />
+      )}
+
+      {/* GROUP ADMIN ADD MEMBER LOAN MODAL (Weekly or Monthly) */}
+      {showMemberLoanModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem', backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', borderRadius: '14px', maxWidth: '640px',
+            width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 800, color: '#047857' }}>
+              {lang === 'ta' ? 'உறுப்பினருக்கு கடன் தொகை சேர்த்தல் (வாராந்திரம் / மாதாந்திரம்)' : 'Add Member Loan (Weekly or Monthly)'}
+            </h3>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              {lang === 'ta'
+                ? 'உங்கள் குழு உறுப்பினருக்கு தேவையான கடன் தொகையை வாராந்திர அல்லது மாதாந்திர தவணையாக நேரடியாக பதிவிடவும்.'
+                : 'Directly record a loan for a member of your SHG with custom weekly or monthly repayment schedule.'}
+            </p>
+
+            {memLoanError && (
+              <div style={{
+                padding: '0.75rem 1rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                color: '#b91c1c', borderRadius: '6px', fontSize: '0.88rem', marginBottom: '1rem'
+              }}>
+                {memLoanError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddMemberLoan} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'உறுப்பினர் தேர்வு' : 'Select SHG Member'} *
+                </label>
+                <select
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  required
+                  style={{
+                    width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                    border: '1.5px solid var(--border-color)', fontSize: '0.95rem', fontWeight: 600
+                  }}
+                >
+                  <option value="">-- Choose Member --</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.phone}) - Current Balance: ₹{m.remaining_balance || 0}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'கடன் தொகை (₹)' : 'Loan Amount (₹)'} *
+                </label>
+                <input
+                  type="number"
+                  min="500"
+                  max="10000"
+                  step="500"
+                  value={memLoanAmount}
+                  onChange={(e) => setMemLoanAmount(e.target.value)}
+                  required
+                  style={{
+                    width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                    border: '1.5px solid var(--border-color)', fontSize: '1.1rem', fontWeight: 700, color: '#047857'
+                  }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {lang === 'ta' ? 'அதிகபட்சம் ₹10,000 வரை வழங்கலாம்' : 'Standard limit up to ₹10,000 per member'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    {lang === 'ta' ? 'தவணை முறை (Weekly / Monthly)' : 'Repayment Frequency'} *
+                  </label>
+                  <select
+                    value={memLoanFrequency}
+                    onChange={(e) => {
+                      setMemLoanFrequency(e.target.value);
+                      setMemLoanTenure(e.target.value === 'WEEKLY' ? 10 : 6);
+                    }}
+                    style={{
+                      width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '0.9rem', fontWeight: 600
+                    }}
+                  >
+                    <option value="WEEKLY">📅 {lang === 'ta' ? 'வாரத் தவணை (Weekly)' : 'Weekly Installments'}</option>
+                    <option value="MONTHLY">🗓️ {lang === 'ta' ? 'மாதத் தவணை (Monthly)' : 'Monthly Installments'}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                    {lang === 'ta' ? 'தவணை காலம் (Tenure)' : 'Tenure Duration'} *
+                  </label>
+                  <select
+                    value={memLoanTenure}
+                    onChange={(e) => setMemLoanTenure(Number(e.target.value))}
+                    style={{
+                      width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                      border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                    }}
+                  >
+                    {memLoanFrequency === 'WEEKLY' ? (
+                      <>
+                        <option value={8}>8 Weeks</option>
+                        <option value={10}>10 Weeks (Standard)</option>
+                        <option value={12}>12 Weeks</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value={3}>3 Months</option>
+                        <option value={6}>6 Months (Standard)</option>
+                        <option value={12}>12 Months</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'கடன் நோக்கம்' : 'Loan Purpose'} *
+                </label>
+                <input
+                  type="text"
+                  value={memLoanPurpose}
+                  onChange={(e) => setMemLoanPurpose(e.target.value)}
+                  required
+                  placeholder="e.g. Small business inventory, cattle feed, tailoring setup"
+                  style={{
+                    width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px',
+                    border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  {lang === 'ta' ? 'வழங்கும் முறை (Disbursement Mode)' : 'Disbursement Mode'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setMemLoanMode('CASH')}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '8px',
+                      border: memLoanMode === 'CASH' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: memLoanMode === 'CASH' ? '#ecfdf5' : '#ffffff',
+                      color: memLoanMode === 'CASH' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    💵 {t('mode_cash')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMemLoanMode('UPI')}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '8px',
+                      border: memLoanMode === 'UPI' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                      backgroundColor: memLoanMode === 'UPI' ? '#ecfdf5' : '#ffffff',
+                      color: memLoanMode === 'UPI' ? '#047857' : 'var(--text-main)',
+                      fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    📱 {t('mode_upi')}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowMemberLoanModal(false)}
+                  className="btn btn-secondary"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingMemLoan}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#047857' }}
+                >
+                  <Plus size={16} />
+                  <span>{submittingMemLoan ? 'Submitting...' : (lang === 'ta' ? 'கடன் விண்ணப்பத்தை சமர்ப்பி' : 'Submit Member Loan')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

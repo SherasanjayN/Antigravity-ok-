@@ -132,6 +132,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
+    addMemberLoan: (payload) => request('/group-admin/members/loans', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
     getAnalytics: () => request('/group-admin/analytics')
   },
 

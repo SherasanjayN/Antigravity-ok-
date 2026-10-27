@@ -1,5 +1,14 @@
 [
   {
+    "id": "488779ea-435a-48a4-a8b0-c5b30ac6a9b0",
+    "user_id": "usr-admin-grp-chn-01",
+    "user_name": "Kavitha Murugan",
+    "role": "GROUP_ADMIN",
+    "action": "ADD_MEMBER_LOAN",
+    "details": "Added loan APP-GA-MEM-6640 for member Kavitha Murugan (₹4000, MONTHLY)",
+    "created_at": "2026-10-27T21:30:02.501Z"
+  },
+  {
     "id": "f837951e-00e6-4ffc-85e1-1f2b1151d5c5",
     "user_id": "super-admin-01",
     "user_name": "Super Admin",

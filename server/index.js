@@ -1505,6 +1505,127 @@ app.post('/api/group-admin/loans/:id/reject', authenticateToken, requireRole('GR
   }
 });
 
+// Group Admin Add Loan for a Member (Weekly or Monthly)
+app.post('/api/group-admin/members/loans', authenticateToken, requireRole('GROUP_ADMIN', 'SUPER_ADMIN'), (req, res) => {
+  try {
+    const {
+      member_id,
+      amount,
+      purpose,
+      repayment_frequency = 'WEEKLY',
+      tenure_value,
+      payment_mode = 'CASH',
+      notes
+    } = req.body;
+
+    if (!member_id) {
+      return res.status(400).json({ error: 'Please select a group member.' });
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: 'Please enter a valid loan amount.' });
+    }
+
+    if (numAmount > 10000) {
+      return res.status(400).json({ error: 'Maximum loan limit per request is ₹10,000 as per Magalir Kuzhu policy.' });
+    }
+
+    const users = readCollection('users');
+    const groups = readCollection('groups');
+    const loans = readCollection('loans');
+
+    const member = users.find(u => u.id === member_id);
+    if (!member) {
+      return res.status(404).json({ error: 'Selected member was not found.' });
+    }
+
+    // Verify member belongs to group admin's group
+    if (req.user.role === 'GROUP_ADMIN') {
+      const gaGroup = groups.find(g => g.group_admin_id === req.user.id || g.id === req.user.group_id);
+      if (!gaGroup || member.group_id !== gaGroup.id) {
+        return res.status(403).json({ error: 'You can only add loan requests for members of your own group.' });
+      }
+    }
+
+    const freq = (repayment_frequency || 'WEEKLY').toUpperCase();
+    const effectiveTenure = Number(tenure_value) || (freq === 'WEEKLY' ? 10 : 6);
+    const calc = calculateEmi(numAmount, 12, freq, effectiveTenure);
+    const applicationId = `APP-GA-MEM-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newLoan = {
+      id: uuidv4(),
+      application_id: applicationId,
+      loan_account_number: null,
+      loan_sequence_number: 1,
+      user_id: member.id,
+      group_id: member.group_id,
+      amount: numAmount,
+      sanctioned_amount: null,
+      purpose: purpose ? purpose.trim() : 'SHG Member Livelihood Expansion',
+      annual_interest_rate: 12,
+      interest_method: 'REDUCING_BALANCE',
+      repayment_frequency: freq,
+      tenure_value: effectiveTenure,
+      tenure_unit: freq === 'WEEKLY' ? 'Weeks' : 'Months',
+      total_installments: calc.installments,
+      installment_amount: calc.emi,
+      total_interest: calc.totalInterest,
+      total_repayment: calc.totalRepayment,
+      payment_mode: payment_mode || 'CASH',
+      upi_email: null,
+      notes: notes ? notes.trim() : `Initiated by Group Admin ${req.user.name}`,
+      status: 'PENDING_SUPER_ADMIN', // Group Admin initiated, forwarded directly to Super Admin
+      disbursement_status: 'NOT_DISBURSED',
+      total_paid: 0,
+      outstanding_balance: calc.totalRepayment,
+      requested_at: new Date().toISOString(),
+      timeline: [
+        {
+          status: 'PENDING_SUPER_ADMIN',
+          note: `Loan application for ₹${numAmount} (${freq}, ${effectiveTenure} ${freq === 'WEEKLY' ? 'weeks' : 'months'}) entered by Group Admin ${req.user.name} and forwarded to Super Admin for sanction.`,
+          by_name: req.user.name,
+          at: new Date().toISOString()
+        }
+      ]
+    };
+
+    loans.unshift(newLoan);
+    writeCollection('loans', loans);
+
+    // Notify member
+    createNotification(
+      member.id,
+      'LOAN_SUBMITTED',
+      'Loan Application Created by Group Admin | குழு தலைவர் கடன் பதிவு செய்துள்ளார்',
+      `Your Group Admin ${req.user.name} has submitted a loan application of ₹${numAmount} (${freq}) on your behalf.`,
+      newLoan.id
+    );
+
+    // Notify Super Admins
+    const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN');
+    superAdmins.forEach(sa => {
+      createNotification(
+        sa.id,
+        'NEW_LOAN_APPLICATION',
+        'New Group Member Loan Submitted by Group Admin',
+        `Group Admin ${req.user.name} submitted a ₹${numAmount} loan application for ${member.name}.`,
+        newLoan.id
+      );
+    });
+
+    recordAudit(req.user.id, req.user.name, 'GROUP_ADMIN', 'ADD_MEMBER_LOAN', `Added loan ${applicationId} for member ${member.name} (₹${numAmount}, ${freq})`);
+
+    res.status(201).json({
+      message: `Loan application for ${member.name} submitted successfully (Weekly/Monthly: ${freq}).`,
+      loan: newLoan
+    });
+  } catch (err) {
+    console.error('Error adding member loan by group admin:', err);
+    res.status(500).json({ error: 'Failed to create member loan application.' });
+  }
+});
+
 // ----------------- MEMBER (USER) ROUTES -----------------
 
 // Member Dashboard
