@@ -23,6 +23,12 @@ const {
   DAILY_PENALTY_RATE,
   DAILY_SCORE_PENALTY
 } = require('./loanCalculations');
+const {
+  isLoanCompleted,
+  isLoanActive,
+  calculateRepaymentScoreDetails,
+  evaluateLoanEligibility
+} = require('./loanEligibilityService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -113,29 +119,35 @@ function recordAudit(userId, userName, role, action, details) {
   }
 }
 
-// Helper: Get a user's active non-completed loans (up to 3 allowed running at a time)
+// Helper: Get a user's active non-completed loans
 function getUserActiveLoans(userId) {
   const loans = readCollection('loans');
-  return loans.filter(l => {
-    if (l.user_id !== userId) return false;
-    if (['REJECTED_GROUP_ADMIN', 'REJECTED_SUPER_ADMIN', 'COMPLETED', 'REJECTED', 'DENIED_BY_USER', 'CANCELLED'].includes(l.status)) {
-      return false;
-    }
-    // Pending review, sanctioned, or disbursed with outstanding balance
-    if (['PENDING_GROUP_ADMIN', 'PENDING_SUPER_ADMIN', 'SANCTIONED'].includes(l.status)) {
-      return true;
-    }
-    if (l.status === 'DISBURSED' || l.status === 'APPROVED') {
-      const balance = l.outstanding_balance !== undefined ? l.outstanding_balance : l.amount;
-      return balance > 0.01;
-    }
-    return false;
-  });
+  return loans.filter(l => l.user_id === userId && isLoanActive(l));
 }
 
 function checkUserActiveLoan(userId) {
   const activeLoans = getUserActiveLoans(userId);
   return activeLoans.length > 0 ? activeLoans[0] : null;
+}
+
+// Centralized helper to get current member loan eligibility using real DB records
+function getMemberLoanEligibility(userId) {
+  const users = readCollection('users');
+  const loans = readCollection('loans');
+  const repayments = readCollection('repayments');
+  const dailyPenalties = readCollection('daily_penalties');
+  const schedules = readCollection('repayment_schedules');
+  const groups = readCollection('groups');
+
+  return evaluateLoanEligibility({
+    userId,
+    users,
+    loans,
+    repayments,
+    dailyPenalties,
+    schedules,
+    groups
+  });
 }
 
 // ----------------- VALIDATION HELPERS -----------------
@@ -753,12 +765,22 @@ app.get('/api/admin/loans', authenticateToken, requireRole('SUPER_ADMIN'), (req,
       const member = users.find(u => u.id === l.user_id);
       const group = groups.find(g => g.id === l.group_id);
       const userActiveLoans = getUserActiveLoans(l.user_id);
+      const eligibility = getMemberLoanEligibility(l.user_id);
       return {
         ...l,
         member_name: member ? member.name : 'Unknown',
         member_email: member ? member.email : 'Unknown',
         member_phone: member ? member.phone : 'Unknown',
-        member_repayment_score: member ? (member.repayment_score !== undefined ? member.repayment_score : 100) : 100,
+        member_repayment_score: eligibility.repaymentScore,
+        member_completed_loans: eligibility.completedLoans,
+        member_remaining_balance: eligibility.remainingBalance,
+        eligibility: {
+          eligible: eligibility.eligible,
+          loanNumber: eligibility.loanNumber,
+          reason: eligibility.reason,
+          statusCode: eligibility.statusCode,
+          ratingCategory: eligibility.ratingCategory
+        },
         group_name: group ? group.group_name : 'Unknown',
         user_active_loans_count: userActiveLoans.length
       };
@@ -992,6 +1014,121 @@ app.post('/api/admin/loans/:id/reject', authenticateToken, requireRole('SUPER_AD
   }
 });
 
+// Super Admin Manual Exception Review for 5th Loan / Special Cases
+// Requires: Super Admin Auth + Authorization + Reason + Explicit Approval + Audit Log
+app.post('/api/admin/loans/override-exception', authenticateToken, requireRole('SUPER_ADMIN'), async (req, res) => {
+  try {
+    const {
+      member_id,
+      amount,
+      purpose = 'Super Admin Policy Exception Facility',
+      repayment_frequency = 'WEEKLY',
+      tenure_value = 10,
+      payment_mode = 'BANK_TRANSFER',
+      reason
+    } = req.body;
+
+    if (!member_id || !amount || !reason || typeof reason !== 'string' || reason.trim().length < 10) {
+      return res.status(400).json({ error: 'Mandatory fields: member_id, amount, and an explicit justification reason (min 10 characters).' });
+    }
+
+    const users = readCollection('users');
+    const loans = readCollection('loans');
+
+    const member = users.find(u => u.id === member_id);
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found.' });
+    }
+
+    if (!member.group_id) {
+      return res.status(400).json({ error: 'Member is not assigned to an active group.' });
+    }
+
+    const activeLoans = getUserActiveLoans(member.id);
+    if (activeLoans.length > 0) {
+      return res.status(400).json({ error: 'Cannot grant exception: Member still has an active loan with an outstanding balance.' });
+    }
+
+    const numAmount = Number(amount);
+    if (isNaN(numAmount) || numAmount <= 0 || numAmount > 10000) {
+      return res.status(400).json({ error: 'Loan amount must be between ₹1 and ₹10,000.' });
+    }
+
+    const completedLoansCount = loans.filter(l => l.user_id === member.id && isLoanCompleted(l)).length;
+    const nextLoanSequence = completedLoansCount + 1;
+    const applicationId = `APP-SA-EXC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const calc = calculateEmi(numAmount, 12, repayment_frequency, tenure_value);
+
+    const newLoan = {
+      id: uuidv4(),
+      application_id: applicationId,
+      loan_account_number: null,
+      loan_sequence_number: nextLoanSequence,
+      user_id: member.id,
+      group_id: member.group_id,
+      amount: numAmount,
+      sanctioned_amount: null,
+      purpose: purpose.trim(),
+      annual_interest_rate: 12,
+      interest_method: 'REDUCING_BALANCE',
+      repayment_frequency,
+      tenure_value: Number(tenure_value),
+      tenure_unit: repayment_frequency === 'WEEKLY' ? 'Weeks' : 'Months',
+      total_installments: calc.installments,
+      installment_amount: calc.emi,
+      total_interest: calc.totalInterest,
+      total_repayment: calc.totalRepayment,
+      payment_mode: payment_mode || 'UPI',
+      upi_email: member.email,
+      status: 'PENDING_SUPER_ADMIN',
+      disbursement_status: 'NOT_DISBURSED',
+      total_paid: 0,
+      outstanding_balance: calc.totalRepayment,
+      is_super_admin_exception: true,
+      exception_reason: reason.trim(),
+      exception_approved_by: req.user.name,
+      exception_approved_by_id: req.user.id,
+      requested_at: new Date().toISOString(),
+      timeline: [
+        {
+          status: 'PENDING_SUPER_ADMIN',
+          note: `Manual Super Admin policy exception initiated for Loan #${nextLoanSequence}. Reason: ${reason.trim()}`,
+          by_name: req.user.name,
+          at: new Date().toISOString()
+        }
+      ]
+    };
+
+    loans.unshift(newLoan);
+    writeCollection('loans', loans);
+
+    // Record formal audit log
+    recordAudit(
+      req.user.id,
+      req.user.name,
+      'SUPER_ADMIN',
+      'SUPER_ADMIN_EXCEPTION_APPROVED',
+      `Approved policy exception for member ${member.name} (${member.id}) for Loan #${nextLoanSequence} amount ₹${numAmount}. Justification: ${reason.trim()}`
+    );
+
+    createNotification(
+      member.id,
+      'LOAN_EXCEPTION_APPROVED',
+      'Special Loan Exception Created | சிறப்பு கடன் அனுமதி',
+      `A Super Admin policy exception was granted for Loan #${nextLoanSequence} (₹${numAmount}). Awaiting final sanction.`,
+      newLoan.id
+    );
+
+    res.status(201).json({
+      message: `Super Admin exception successfully created for Loan #${nextLoanSequence}.`,
+      loan: newLoan
+    });
+  } catch (err) {
+    console.error('Super Admin exception error:', err);
+    res.status(500).json({ error: 'Failed to process exception review.' });
+  }
+});
+
 // Broadcast announcement
 app.post('/api/admin/announcements', authenticateToken, requireRole('SUPER_ADMIN'), (req, res) => {
   try {
@@ -1116,16 +1253,30 @@ app.get('/api/group-admin/my-group', authenticateToken, requireRole('GROUP_ADMIN
 
     const members = users
       .filter(u => u.group_id === group.id && u.status === 'APPROVED')
-      .map(u => ({
-        id: u.id,
-        name: u.name,
-        phone: u.phone,
-        email: u.email,
-        role: u.role,
-        area: u.area,
-        district: u.district,
-        created_at: u.created_at
-      }));
+      .map(u => {
+        const eligibility = getMemberLoanEligibility(u.id);
+        return {
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          email: u.email,
+          role: u.role,
+          area: u.area,
+          district: u.district,
+          created_at: u.created_at,
+          repayment_score: eligibility.repaymentScore,
+          completed_loans: eligibility.completedLoans,
+          remaining_balance: eligibility.remainingBalance,
+          eligibility: {
+            eligible: eligibility.eligible,
+            loanNumber: eligibility.loanNumber,
+            reason: eligibility.reason,
+            reasonTa: eligibility.reasonTa,
+            statusCode: eligibility.statusCode,
+            ratingCategory: eligibility.ratingCategory
+          }
+        };
+      });
 
     res.json({ group, members });
   } catch (err) {
@@ -1236,12 +1387,24 @@ app.get('/api/group-admin/loans', authenticateToken, requireRole('GROUP_ADMIN', 
       .map(l => {
         const member = users.find(u => u.id === l.user_id);
         const userActiveLoans = getUserActiveLoans(l.user_id);
+        const eligibility = getMemberLoanEligibility(l.user_id);
         return {
           ...l,
           member_name: member ? member.name : 'Unknown',
           member_email: member ? member.email : 'Unknown',
           member_phone: member ? member.phone : 'Unknown',
-          user_active_loans_count: userActiveLoans.length
+          user_active_loans_count: userActiveLoans.length,
+          member_repayment_score: eligibility.repaymentScore,
+          member_completed_loans: eligibility.completedLoans,
+          member_remaining_balance: eligibility.remainingBalance,
+          eligibility: {
+            eligible: eligibility.eligible,
+            loanNumber: eligibility.loanNumber,
+            reason: eligibility.reason,
+            reasonTa: eligibility.reasonTa,
+            statusCode: eligibility.statusCode,
+            ratingCategory: eligibility.ratingCategory
+          }
         };
       });
 
@@ -1384,9 +1547,12 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
       .filter(l => l.user_id === currentUser.id)
       .sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
 
-    // Active loans check (up to 3 running loans allowed)
+    // Active loans check (single active loan policy enforced)
     const activeLoans = getUserActiveLoans(currentUser.id);
     const activeLoan = activeLoans.length > 0 ? activeLoans[0] : null;
+
+    // Calculate real-time authoritative loan eligibility
+    const eligibility = getMemberLoanEligibility(currentUser.id);
 
     res.json({
       user: {
@@ -1398,7 +1564,7 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
         district: currentUser.district,
         role: currentUser.role,
         status: currentUser.status,
-        repayment_score: currentUser.repayment_score !== undefined ? currentUser.repayment_score : 100,
+        repayment_score: eligibility.repaymentScore !== undefined ? eligibility.repaymentScore : (currentUser.repayment_score !== undefined ? currentUser.repayment_score : 100),
         total_overdue_days: currentUser.total_overdue_days || 0,
         total_penalties_incurred: currentUser.total_penalties_incurred || 0
       },
@@ -1409,6 +1575,7 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
       activeLoan,
       activeLoans,
       activeLoansCount: activeLoans.length,
+      eligibility,
       announcements
     });
   } catch (err) {
@@ -1416,22 +1583,38 @@ app.get('/api/member/dashboard', authenticateToken, (req, res) => {
   }
 });
 
-// Check Active Loan status specifically (returns count and list, up to 3 loans allowed)
+// Centralized Loan Eligibility API endpoint: GET /api/loans/eligibility
+app.get('/api/loans/eligibility', authenticateToken, (req, res) => {
+  try {
+    const targetUserId = (req.query.userId && (req.user.role === 'GROUP_ADMIN' || req.user.role === 'SUPER_ADMIN'))
+      ? req.query.userId
+      : req.user.id;
+
+    const eligibility = getMemberLoanEligibility(targetUserId);
+    res.json(eligibility);
+  } catch (err) {
+    console.error('Eligibility check error:', err);
+    res.status(500).json({ error: 'Failed to check loan eligibility.' });
+  }
+});
+
+// Check Active Loan status specifically (enforcing Single Active Loan policy & eligibility)
 app.get('/api/member/active-loan-check', authenticateToken, (req, res) => {
   try {
     const activeLoans = getUserActiveLoans(req.user.id);
     const count = activeLoans.length;
+    const eligibility = getMemberLoanEligibility(req.user.id);
 
     res.json({
       hasActiveLoan: count > 0,
       activeLoansCount: count,
-      maxAllowedLoans: 3,
-      canApplyMore: count < 3,
-      message: count >= 3
-        ? 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for a new loan.'
-        : count > 0
-          ? `You have ${count} existing active loan(s). You can have up to 3 loans running at a time.`
-          : 'You currently have no active loans.',
+      canApplyMore: eligibility.eligible,
+      eligibility,
+      message: count > 0
+        ? 'Please complete your current loan before applying for another loan.'
+        : eligibility.eligible
+          ? eligibility.reason
+          : eligibility.reason,
       activeLoans: activeLoans.map(l => ({
         id: l.id,
         loan_account_number: l.loan_account_number || l.application_id || l.id,
@@ -1548,15 +1731,25 @@ app.post('/api/member/loans', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'You must be allocated to an SHG group before submitting a loan request.' });
     }
 
-    // BUSINESS RULE: A user can get up to 3 loans running at a time
-    const activeLoans = getUserActiveLoans(currentUser.id);
-    if (activeLoans.length >= 3) {
+    // CORE BUSINESS RULE: Strict Server-Side Loan Eligibility Verification
+    const eligibility = getMemberLoanEligibility(currentUser.id);
+    if (!eligibility.eligible) {
+      recordAudit(
+        currentUser.id,
+        currentUser.name,
+        currentUser.role,
+        'LOAN_APPLICATION_BLOCKED',
+        `Blocked loan application: ${eligibility.reason} (Score: ${eligibility.repaymentScore}, Completed: ${eligibility.completedLoans}, Status: ${eligibility.statusCode})`
+      );
       return res.status(400).json({
-        error: 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for another loan.',
-        activeLoansCount: activeLoans.length,
-        maxAllowed: 3
+        error: eligibility.reason,
+        reasonTa: eligibility.reasonTa,
+        eligibility
       });
     }
+
+    // Sequence number strictly calculated by backend from actual history
+    const backendLoanSequenceNumber = eligibility.loanNumber || (eligibility.completedLoans + 1);
 
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -1593,6 +1786,7 @@ app.post('/api/member/loans', authenticateToken, (req, res) => {
       id: uuidv4(),
       application_id: applicationId,
       loan_account_number: null, // assigned on sanction
+      loan_sequence_number: backendLoanSequenceNumber,
       user_id: currentUser.id,
       group_id: currentUser.group_id,
       amount: numAmount,
@@ -1689,14 +1883,24 @@ app.post('/api/group-admin/loans/apply', authenticateToken, requireRole('GROUP_A
       return res.status(400).json({ error: 'You must be associated with an SHG group.' });
     }
 
-    const activeLoans = getUserActiveLoans(currentUser.id);
-    if (activeLoans.length >= 3) {
+    // CORE BUSINESS RULE: Server-Side Loan Eligibility for Group Admin
+    const eligibility = getMemberLoanEligibility(currentUser.id);
+    if (!eligibility.eligible) {
+      recordAudit(
+        currentUser.id,
+        currentUser.name,
+        currentUser.role,
+        'LOAN_APPLICATION_BLOCKED',
+        `Blocked Group Admin loan application: ${eligibility.reason} (Score: ${eligibility.repaymentScore}, Status: ${eligibility.statusCode})`
+      );
       return res.status(400).json({
-        error: 'You already have 3 active loans running, which is the maximum limit. Please complete repayment of at least one loan before applying for another loan.',
-        activeLoansCount: activeLoans.length,
-        maxAllowed: 3
+        error: eligibility.reason,
+        reasonTa: eligibility.reasonTa,
+        eligibility
       });
     }
+
+    const backendLoanSequenceNumber = eligibility.loanNumber || (eligibility.completedLoans + 1);
 
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -1722,6 +1926,7 @@ app.post('/api/group-admin/loans/apply', authenticateToken, requireRole('GROUP_A
       id: uuidv4(),
       application_id: applicationId,
       loan_account_number: null,
+      loan_sequence_number: backendLoanSequenceNumber,
       user_id: currentUser.id,
       group_id: currentUser.group_id,
       amount: numAmount,
@@ -1926,12 +2131,32 @@ app.post('/api/repayments', authenticateToken, requireRole('GROUP_ADMIN'), async
       loan.id
     );
 
+    // Recalculate Member Repayment Score and Eligibility in real-time
+    const updatedEligibility = getMemberLoanEligibility(member.id);
+    const memberIndex = users.findIndex(u => u.id === member.id);
+    if (memberIndex !== -1) {
+      const prevScore = users[memberIndex].repayment_score !== undefined ? users[memberIndex].repayment_score : 100;
+      users[memberIndex].repayment_score = updatedEligibility.repaymentScore;
+      writeCollection('users', users);
+
+      if (prevScore !== updatedEligibility.repaymentScore) {
+        recordAudit(
+          req.user.id,
+          req.user.name,
+          req.user.role,
+          'SCORE_CHANGED',
+          `Repayment score updated for member ${member.name} (${member.id}) from ${prevScore} to ${updatedEligibility.repaymentScore}. Loan completion status: ${isFullyRepaid ? 'COMPLETED' : 'ACTIVE'}.`
+        );
+      }
+    }
+
     recordAudit(req.user.id, req.user.name, req.user.role, 'RECORD_REPAYMENT', `Recorded ${payment_method} payment of ₹${numAmount} for loan ${loan.loan_account_number}`);
 
     res.json({
       message: `Repayment of ₹${numAmount} successfully recorded! Receipt ${receiptNumber} generated and dispatched to ${member.email}.`,
       receipt,
       loan,
+      eligibility: updatedEligibility,
       emailResult
     });
   } catch (err) {

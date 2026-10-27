@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../i18n';
 import ValidatedVoiceField from '../VoiceInput/ValidatedVoiceField';
+import { api } from '../../services/api';
 
 /**
  * SHE AI - Self-Help Empowerment AI Assistant
@@ -94,6 +95,10 @@ export default function SheAiAssistant({ currentUser }) {
   // Suggested Prompts
   const suggestedPrompts = [
     {
+      label: lang === 'ta' ? '🌸 எனக்கு கடன் தகுதி உள்ளதா?' : '🌸 Am I eligible for a loan?',
+      query: lang === 'ta' ? 'எனக்கு இன்னொரு loan கிடைக்குமா? என் கடன் தகுதி மற்றும் repayment score என்ன?' : 'Am I eligible for another loan? What is my repayment score?'
+    },
+    {
       label: lang === 'ta' ? 'கடன் விதிகள் என்ன?' : 'What are the loan limits & rules?',
       query: lang === 'ta' ? 'மகளிர் குழு கடன் வாங்குவதற்கான விதிகள் மற்றும் வரம்பு என்ன?' : 'What are the rules and limits for taking a loan in Magalir Kuzhu?'
     },
@@ -118,6 +123,120 @@ export default function SheAiAssistant({ currentUser }) {
 
     // Simulated intelligence processing delay
     await new Promise(r => setTimeout(r, 650));
+
+    // 🌸 SMART LOAN ELIGIBILITY & REPAYMENT SCORE QUERY HANDLER (DATA-DRIVEN)
+    // Supports English, Tamil, and Tanglish
+    const isEligibilityQuery = (
+      // English
+      q.includes('eligible') || q.includes('eligibility') ||
+      q.includes('can i get') || q.includes('can i apply') ||
+      q.includes('another loan') || q.includes('next loan') ||
+      q.includes('4th loan') || q.includes('fourth loan') ||
+      q.includes('5th loan') || q.includes('fifth loan') ||
+      q.includes('why can\'t i get') || q.includes('why cannot i get') ||
+      q.includes('repayment score') || q.includes('my score') ||
+      q.includes('improve my score') || q.includes('improve score') ||
+      q.includes('when can i apply') ||
+      // Tamil script
+      q.includes('தகுதி') || q.includes('இன்னொரு லோன்') || q.includes('இன்னொரு கடன்') ||
+      q.includes('கிடைக்குமா') || q.includes('4வது லோன்') || q.includes('4வது கடன்') ||
+      q.includes('நான்காவது கடன்') || q.includes('ஏன் லோன் கிடைக்கவில்லை') ||
+      q.includes('ஏன் கடன் கிடைக்கவில்லை') || q.includes('ரெபேமென்ட் ஸ்கோர்') ||
+      q.includes('ஸ்கோர் எவ்வளவு') || q.includes('ஸ்கோரை அதிகரிக்க') ||
+      q.includes('எப்போது கடன் வாங்கலாம்') ||
+      // Tanglish
+      q.includes('kidaikkuma') || q.includes('kedaikuma') ||
+      q.includes('next loan') || q.includes('4th loan edukka') ||
+      q.includes('loan eligibility enna') || q.includes('repayment score evlo') ||
+      q.includes('score improve panna') || q.includes('enna pannanum')
+    );
+
+    if (isEligibilityQuery && currentUser?.id) {
+      try {
+        const eligibility = await api.member.getEligibility(currentUser.id);
+        const {
+          eligible,
+          loanNumber,
+          completedLoans,
+          repaymentScore,
+          remainingBalance,
+          statusCode
+        } = eligibility;
+
+        // Specific sub-intent: How to improve score
+        if (q.includes('improve') || q.includes('அதிகரிக்க') || q.includes('enna pannanum')) {
+          if (isTa) {
+            return `🌸 **உங்கள் தவணை ஒழுங்கு ஸ்கோரை (Repayment Score) அதிகரிக்க வழிகள்:**
+
+1. **சரியான நேரத்தில் தவணை செலுத்துங்கள்:** ஒவ்வொரு தவணையையும் உரிய நாளுக்கு முன்னரே செலுத்துங்கள் (தாமதமாகும் ஒவ்வொரு நாளுக்கும் ₹50 அபராதம் மற்றும் -1 ஸ்கோர் குறையும்).
+2. **முழு தவணைத் தொகையை செலுத்துங்கள்:** பகுதி தொகையாக (Partial payment) செலுத்தாமல் முழு தவணையையும் செலுத்துங்கள்.
+3. **முந்தைய கடன்களை முழுதும் முடிப்பது:** முந்தைய கடன்களை ₹0 நிலுவையுடன் முடிக்கும் போது ஸ்கோர் உயரும்.
+4. **தற்போதைய ஸ்கோர்:** உங்கள் தற்போதைய ஸ்கோர் **${repaymentScore}/100** (${eligibility.ratingCategory || ''}).
+${completedLoans === 3 ? '💡 4-வது கடன் பெற குறைந்தபட்சம் **95/100** ஸ்கோர் தேவை!' : ''}`;
+          } else {
+            return `🌸 **How to Improve Your SHE AI Repayment Score:**
+
+1. **Pay On-Time:** Pay your weekly or monthly installments on or before the due date. (Each overdue day causes a ₹50 penalty and -1 score reduction).
+2. **Pay Exact Full Installments:** Avoid partial payments; clearing the full installment protects your score.
+3. **Complete & Settle Loans:** Successfully closing loans with ₹0 remaining balance rewards your score.
+4. **Current Performance:** Your live score is **${repaymentScore}/100** (${eligibility.ratingCategory || ''}).
+${completedLoans === 3 ? '💡 A minimum repayment score of **95/100** is required to unlock Loan #4!' : ''}`;
+          }
+        }
+
+        // Case 1: Active Loan exists with outstanding balance
+        if (statusCode === 'ACTIVE_LOAN_EXISTS' || remainingBalance > 0) {
+          if (isTa) {
+            return `🌸 ${eligibility.reasonTa || eligibility.reason}`;
+          } else {
+            return `🌸 Your repayment score is ${repaymentScore}/100, but your current loan still has ₹${remainingBalance.toLocaleString('en-IN')} outstanding. Please complete the current loan before applying for another loan.`;
+          }
+        }
+
+        // Case 2: 5th loan attempt under standard policy
+        if (statusCode === 'MAX_LOANS_REACHED' || completedLoans >= 4) {
+          if (isTa) {
+            return `🌸 **5-வது கடன் கொள்கை அறிவிப்பு:**\n\nநிலையான கடன் கொள்கையின்படி, நீங்கள் ஏற்கனவே அதிகபட்சமாக 4 கடன்களை வெற்றிகரமாக முடித்துள்ளீர்கள். எனவே தானாக மற்றொரு கடன் வழங்கப்படாது. உங்களுக்கு சிறப்புத் தேவை இருப்பின், உங்கள் குழு தலைவர் அல்லது முதன்மை நிர்வாகியை (Super Admin Manual Review) தொடர்பு கொள்ளவும்.`;
+          } else {
+            return `🌸 Under the standard loan policy, you have completed 4 loans, so another loan is not automatically available. Please contact your Group Admin or authorized Super Admin if a policy-based review is required.`;
+          }
+        }
+
+        // Case 3: 4th Loan Eligible
+        if (loanNumber === 4 && eligible) {
+          if (isTa) {
+            return `🌸 **ஆம், நீங்கள் 4-வது கடனுக்கு (Loan #4) தகுதியுடையவர்!** 🎉\n\n- ⭐ **தவணை ஒழுங்கு ஸ்கோர்:** ${repaymentScore}/100 (தேவை: 95+)\n- 🏆 **முடிக்கப்பட்ட கடன்கள்:** ${completedLoans}\n- 💰 **தற்போதைய நிலுவை:** ₹0\n\nநீங்கள் இப்போது உங்கள் **My Loans** பகுதிக்குச் சென்று கடன் விண்ணப்பிக்கலாம்!`;
+          } else {
+            return `🌸 Yes, you are currently eligible for Loan #4.\nYour repayment score is ${repaymentScore}/100, you have completed 3 previous loans, and your current outstanding balance is ₹0.`;
+          }
+        }
+
+        // Case 4: 4th Loan Not Eligible (score < 95)
+        if (loanNumber === 4 && !eligible) {
+          if (isTa) {
+            return `🌸 நீங்கள் தற்போது அடுத்த கடனுக்கு தகுதியடையவில்லை.\nஉங்கள் தவணை ஒழுங்கு ஸ்கோர் **${repaymentScore}/100** ஆக உள்ளது, ஆனால் 4-வது கடன் பெற குறைந்தபட்சம் **95** ஸ்கோர் தேவை. முந்தைய நிலுவைகளை ஒழுங்காக செலுத்துவதன் மூலம் ஸ்கோரை உயர்த்தலாம்.`;
+          } else {
+            return `🌸 You are not currently eligible for another loan.\nYour repayment score is ${repaymentScore}/100, while a minimum score of 95 is required for the 4th loan.`;
+          }
+        }
+
+        // Case 5: Loans 1, 2, 3 eligible
+        if (eligible) {
+          if (isTa) {
+            return `🌸 ஆம், நீங்கள் **Loan #${loanNumber}**-க்கு தகுதியுடையவர்! உங்கள் தவணை ஒழுங்கு ஸ்கோர் ${repaymentScore}/100, முடிக்கப்பட்ட கடன்கள்: ${completedLoans}, தற்போதைய நிலுவை: ₹0.`;
+          } else {
+            return `🌸 Yes, you are currently eligible for Loan #${loanNumber}.\nYour repayment score is ${repaymentScore}/100, you have completed ${completedLoans} previous loan(s), and your current outstanding balance is ₹0.`;
+          }
+        }
+
+        // Default backend response fallback
+        return isTa
+          ? `🌸 ${eligibility.reasonTa || eligibility.reason}`
+          : `🌸 ${eligibility.reason}`;
+      } catch (err) {
+        console.warn('SHE AI failed to query loan eligibility:', err);
+      }
+    }
 
     // 0. Loan Amount + Weekly/Monthly EMI Calculation Request
     // Check digits or Tamil keywords

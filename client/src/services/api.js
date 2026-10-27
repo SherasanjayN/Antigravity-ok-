@@ -110,6 +110,10 @@ export const api = {
     assignGroupAdmin: (groupId, payload) => request(`/admin/groups/${groupId}/assign-admin`, {
       method: 'POST',
       body: JSON.stringify(payload)
+    }),
+    overrideException: (payload) => request('/admin/loans/override-exception', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     })
   },
 
@@ -135,6 +139,7 @@ export const api = {
   member: {
     getDashboard: () => request('/member/dashboard'),
     checkActiveLoan: () => request('/member/active-loan-check'),
+    getEligibility: (userId) => request(userId ? `/loans/eligibility?userId=${encodeURIComponent(userId)}` : '/loans/eligibility'),
     applyLoan: (payload) => request('/member/loans', {
       method: 'POST',
       body: JSON.stringify(payload)

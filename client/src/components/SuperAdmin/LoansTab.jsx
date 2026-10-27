@@ -283,7 +283,15 @@ export default function LoansTab({ onActionComplete }) {
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{loan.member_email}</div>
                     </td>
                     <td style={{ padding: '10px 14px', fontWeight: 600, color: '#047857' }}>
-                      {loan.loan_account_number || loan.application_id || loan.id.slice(0, 8)}
+                      <div>{loan.loan_account_number || loan.application_id || loan.id.slice(0, 8)}</div>
+                      {loan.loan_sequence_number && (
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px',
+                          backgroundColor: '#f1f5f9', color: '#475569', display: 'inline-block', marginTop: '2px'
+                        }}>
+                          Loan #{loan.loan_sequence_number}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '10px 14px' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>₹{loan.amount}</div>
@@ -314,11 +322,15 @@ export default function LoansTab({ onActionComplete }) {
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                       <span style={{
                         fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '12px',
-                        backgroundColor: (loan.user_active_loans_count || 1) >= 3 ? '#fee2e2' : '#f0fdf4',
-                        color: (loan.user_active_loans_count || 1) >= 3 ? '#b91c1c' : '#15803d',
-                        border: (loan.user_active_loans_count || 1) >= 3 ? '1px solid #fca5a5' : '1px solid #bbf7d0'
+                        backgroundColor: (loan.outstanding_balance || 0) <= 0.01 && loan.status === 'COMPLETED'
+                          ? '#dcfce7'
+                          : '#fef3c7',
+                        color: (loan.outstanding_balance || 0) <= 0.01 && loan.status === 'COMPLETED'
+                          ? '#15803d'
+                          : '#b45309',
+                        border: '1px solid rgba(0,0,0,0.08)'
                       }}>
-                        {loan.user_active_loans_count || 1}/3 Active
+                        {loan.status === 'COMPLETED' ? 'Completed' : 'Active Loan'}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px' }}>

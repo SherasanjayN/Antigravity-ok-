@@ -416,10 +416,30 @@ export default function GroupAdminDashboard({ currentUser }) {
                         <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '10px 14px' }}>
                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{loan.member_phone}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {loan.member_repayment_score !== undefined && (
+                                <span style={{
+                                  fontSize: '0.7rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px',
+                                  backgroundColor: loan.member_repayment_score >= 95 ? '#dcfce7' : loan.member_repayment_score >= 80 ? '#fef3c7' : '#fee2e2',
+                                  color: loan.member_repayment_score >= 95 ? '#15803d' : loan.member_repayment_score >= 80 ? '#b45309' : '#dc2626',
+                                  marginRight: '6px'
+                                }}>
+                                  ⭐ {loan.member_repayment_score} pts
+                                </span>
+                              )}
+                              {loan.member_phone}
+                            </div>
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 600, color: '#047857' }}>
-                            {loan.loan_account_number || loan.application_id || loan.id.slice(0, 8)}
+                            <div>{loan.loan_account_number || loan.application_id || loan.id.slice(0, 8)}</div>
+                            {loan.loan_sequence_number && (
+                              <span style={{
+                                fontSize: '0.68rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px',
+                                backgroundColor: '#f1f5f9', color: '#475569', display: 'inline-block', marginTop: '2px'
+                              }}>
+                                Loan #{loan.loan_sequence_number}
+                              </span>
+                            )}
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 700 }}>
                             ₹{loan.amount}
@@ -450,11 +470,15 @@ export default function GroupAdminDashboard({ currentUser }) {
                           <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                             <span style={{
                               fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '12px',
-                              backgroundColor: (loan.user_active_loans_count || 1) >= 3 ? '#fee2e2' : '#f0fdf4',
-                              color: (loan.user_active_loans_count || 1) >= 3 ? '#b91c1c' : '#15803d',
-                              border: (loan.user_active_loans_count || 1) >= 3 ? '1px solid #fca5a5' : '1px solid #bbf7d0'
+                              backgroundColor: (loan.outstanding_balance || 0) <= 0.01 && loan.status === 'COMPLETED'
+                                ? '#dcfce7'
+                                : (loan.user_active_loans_count || 1) > 0 ? '#fef3c7' : '#f0fdf4',
+                              color: (loan.outstanding_balance || 0) <= 0.01 && loan.status === 'COMPLETED'
+                                ? '#15803d'
+                                : '#b45309',
+                              border: '1px solid rgba(0,0,0,0.08)'
                             }}>
-                              {loan.user_active_loans_count || 1}/3 Active
+                              {loan.status === 'COMPLETED' ? 'Completed' : 'Active Loan'}
                             </span>
                           </td>
                           <td style={{ padding: '10px 14px' }}>
@@ -531,24 +555,67 @@ export default function GroupAdminDashboard({ currentUser }) {
                 <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid var(--border-color)' }}>
                   <tr>
                     <th style={{ padding: '10px 14px' }}>Member Name</th>
-                    <th style={{ padding: '10px 14px' }}>Phone</th>
-                    <th style={{ padding: '10px 14px' }}>Email</th>
-                    <th style={{ padding: '10px 14px' }}>Area & District</th>
-                    <th style={{ padding: '10px 14px' }}>Role</th>
+                    <th style={{ padding: '10px 14px' }}>Contact</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Completed Loans</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Repayment Score</th>
+                    <th style={{ padding: '10px 14px' }}>Current Balance</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>4th Loan Eligibility</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map(m => (
-                    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700 }}>{m.name}</td>
-                      <td style={{ padding: '10px 14px' }}>{m.phone}</td>
-                      <td style={{ padding: '10px 14px' }}>{m.email}</td>
-                      <td style={{ padding: '10px 14px' }}>{m.area}, {m.district}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <StatusBadge status={m.role} type="role" />
-                      </td>
-                    </tr>
-                  ))}
+                  {members.map(m => {
+                    const isEligibleFor4th = m.eligibility ? m.eligibility.eligible : false;
+                    const score = m.repayment_score !== undefined ? m.repayment_score : 100;
+                    const completed = m.completed_loans || 0;
+                    const balance = m.remaining_balance || 0;
+
+                    return (
+                      <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a' }}>{m.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.area}, {m.district}</div>
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div>{m.phone}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.email}</div>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 700, fontSize: '0.95rem' }}>
+                          {completed}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            backgroundColor: score >= 95 ? '#dcfce7' : score >= 80 ? '#fef3c7' : '#fee2e2',
+                            color: score >= 95 ? '#15803d' : score >= 80 ? '#b45309' : '#dc2626',
+                            border: score >= 95 ? '1px solid #86efac' : score >= 80 ? '1px solid #fde68a' : '1px solid #fca5a5'
+                          }}>
+                            ⭐ {score} / 100
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: balance > 0 ? '#b45309' : '#15803d' }}>
+                          ₹{balance}
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '3px 10px',
+                            borderRadius: '14px',
+                            fontWeight: 800,
+                            fontSize: '0.75rem',
+                            backgroundColor: isEligibleFor4th ? '#dcfce7' : '#fee2e2',
+                            color: isEligibleFor4th ? '#15803d' : '#b91c1c',
+                            border: isEligibleFor4th ? '1px solid #86efac' : '1px solid #fca5a5'
+                          }} title={m.eligibility?.reason || ''}>
+                            {isEligibleFor4th ? '🟢 Eligible' : '🔴 Not Eligible'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
