@@ -923,8 +923,8 @@
     "disbursement_status": "DISBURSED",
     "total_paid": 2430.92,
     "outstanding_balance": 3645.51,
-    "overdue_days": 42,
-    "penalty_amount": 2100,
+    "overdue_days": 46,
+    "penalty_amount": 2300,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -1010,8 +1010,8 @@
         "interest_paid": 0.36,
         "paidAmount": 0.36,
         "remainingAmount": 607.28,
-        "overdueDays": 21,
-        "penaltyAmount": 1050,
+        "overdueDays": 22,
+        "penaltyAmount": 1100,
         "status": "PARTIALLY_PAID_OVERDUE"
       },
       {
@@ -1027,8 +1027,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 14,
-        "penaltyAmount": 700,
+        "overdueDays": 15,
+        "penaltyAmount": 750,
         "status": "OVERDUE"
       },
       {
@@ -1044,8 +1044,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 7,
-        "penaltyAmount": 350,
+        "overdueDays": 8,
+        "penaltyAmount": 400,
         "status": "OVERDUE"
       },
       {
@@ -1061,9 +1061,9 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 0,
-        "penaltyAmount": 0,
-        "status": "UPCOMING"
+        "overdueDays": 1,
+        "penaltyAmount": 50,
+        "status": "OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-chn-01-m2-overdue_inst_9",
@@ -2813,8 +2813,8 @@
     "disbursement_status": "DISBURSED",
     "total_paid": 1822.92,
     "outstanding_balance": 4253.51,
-    "overdue_days": 59,
-    "penalty_amount": 2950,
+    "overdue_days": 64,
+    "penalty_amount": 3200,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -2883,8 +2883,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 17,
-        "penaltyAmount": 850,
+        "overdueDays": 18,
+        "penaltyAmount": 900,
         "status": "OVERDUE"
       },
       {
@@ -2900,8 +2900,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 21,
-        "penaltyAmount": 1050,
+        "overdueDays": 22,
+        "penaltyAmount": 1100,
         "status": "OVERDUE"
       },
       {
@@ -2917,8 +2917,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 14,
-        "penaltyAmount": 700,
+        "overdueDays": 15,
+        "penaltyAmount": 750,
         "status": "OVERDUE"
       },
       {
@@ -2934,8 +2934,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 7,
-        "penaltyAmount": 350,
+        "overdueDays": 8,
+        "penaltyAmount": 400,
         "status": "OVERDUE"
       },
       {
@@ -2951,9 +2951,9 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 0,
-        "penaltyAmount": 0,
-        "status": "UPCOMING"
+        "overdueDays": 1,
+        "penaltyAmount": 50,
+        "status": "OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-cbe-02-m2-overdue_inst_9",
@@ -5090,8 +5090,8 @@
     "disbursement_status": "DISBURSED",
     "total_paid": 1822.92,
     "outstanding_balance": 4253.51,
-    "overdue_days": 59,
-    "penalty_amount": 2950,
+    "overdue_days": 64,
+    "penalty_amount": 3200,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -5160,8 +5160,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 17,
-        "penaltyAmount": 850,
+        "overdueDays": 18,
+        "penaltyAmount": 900,
         "status": "OVERDUE"
       },
       {
@@ -5177,8 +5177,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 21,
-        "penaltyAmount": 1050,
+        "overdueDays": 22,
+        "penaltyAmount": 1100,
         "status": "OVERDUE"
       },
       {
@@ -5194,8 +5194,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 14,
-        "penaltyAmount": 700,
+        "overdueDays": 15,
+        "penaltyAmount": 750,
         "status": "OVERDUE"
       },
       {
@@ -5211,8 +5211,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 7,
-        "penaltyAmount": 350,
+        "overdueDays": 8,
+        "penaltyAmount": 400,
         "status": "OVERDUE"
       },
       {
@@ -5228,9 +5228,9 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 0,
-        "penaltyAmount": 0,
-        "status": "UPCOMING"
+        "overdueDays": 1,
+        "penaltyAmount": 50,
+        "status": "OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-mdu-03-m2-overdue_inst_9",
@@ -6500,8 +6500,8 @@
     "disbursement_status": "DISBURSED",
     "total_paid": 1822.92,
     "outstanding_balance": 4253.51,
-    "overdue_days": 59,
-    "penalty_amount": 2950,
+    "overdue_days": 64,
+    "penalty_amount": 3200,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -6570,8 +6570,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 17,
-        "penaltyAmount": 850,
+        "overdueDays": 18,
+        "penaltyAmount": 900,
         "status": "OVERDUE"
       },
       {
@@ -6587,8 +6587,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 21,
-        "penaltyAmount": 1050,
+        "overdueDays": 22,
+        "penaltyAmount": 1100,
         "status": "OVERDUE"
       },
       {
@@ -6604,8 +6604,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 14,
-        "penaltyAmount": 700,
+        "overdueDays": 15,
+        "penaltyAmount": 750,
         "status": "OVERDUE"
       },
       {
@@ -6621,8 +6621,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 7,
-        "penaltyAmount": 350,
+        "overdueDays": 8,
+        "penaltyAmount": 400,
         "status": "OVERDUE"
       },
       {
@@ -6638,9 +6638,9 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 0,
-        "penaltyAmount": 0,
-        "status": "UPCOMING"
+        "overdueDays": 1,
+        "penaltyAmount": 50,
+        "status": "OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-try-04-m2-overdue_inst_9",
@@ -8779,8 +8779,8 @@
     "disbursement_status": "DISBURSED",
     "total_paid": 1822.92,
     "outstanding_balance": 4253.51,
-    "overdue_days": 59,
-    "penalty_amount": 2950,
+    "overdue_days": 64,
+    "penalty_amount": 3200,
     "requested_at": "2026-09-01T10:00:00.000Z",
     "sanctioned_at": "2026-09-02T10:00:00.000Z",
     "disbursed_at": "2026-09-03T10:00:00.000Z",
@@ -8849,8 +8849,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 17,
-        "penaltyAmount": 850,
+        "overdueDays": 18,
+        "penaltyAmount": 900,
         "status": "OVERDUE"
       },
       {
@@ -8866,8 +8866,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 21,
-        "penaltyAmount": 1050,
+        "overdueDays": 22,
+        "penaltyAmount": 1100,
         "status": "OVERDUE"
       },
       {
@@ -8883,8 +8883,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 14,
-        "penaltyAmount": 700,
+        "overdueDays": 15,
+        "penaltyAmount": 750,
         "status": "OVERDUE"
       },
       {
@@ -8900,8 +8900,8 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 7,
-        "penaltyAmount": 350,
+        "overdueDays": 8,
+        "penaltyAmount": 400,
         "status": "OVERDUE"
       },
       {
@@ -8917,9 +8917,9 @@
         "interest_paid": 0,
         "paidAmount": 0,
         "remainingAmount": 607.64,
-        "overdueDays": 0,
-        "penaltyAmount": 0,
-        "status": "UPCOMING"
+        "overdueDays": 1,
+        "penaltyAmount": 50,
+        "status": "OVERDUE"
       },
       {
         "repaymentId": "ln-usr-grp-slm-05-m2-overdue_inst_9",

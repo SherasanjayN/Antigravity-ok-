@@ -357,7 +357,7 @@ function processDailyRepaymentAndScore({
   // Rule: Score = max(0, 100 - totalUniqueScorePenalties)
   // Each daily penalty event for a user represents 1 unique overdue day penalty
   for (const user of users) {
-    if (user.role === 'USER') {
+    if (user.role === 'USER' || user.role === 'GROUP_ADMIN') {
       const userPenalties = dailyPenalties.filter(p => p.userId === user.id);
       const totalScorePenalty = userPenalties.reduce((sum, p) => sum + (p.scorePenalty || DAILY_SCORE_PENALTY), 0);
       

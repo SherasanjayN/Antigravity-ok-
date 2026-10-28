@@ -1,5 +1,245 @@
 [
   {
+    "id": "7972b5fc-efb5-4edf-8e7a-df6fe992c3f2",
+    "user_id": "usr-grp-slm-05-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 1 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.\n\nஉங்கள் ₹607.64 repayment 1 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.",
+    "related_loan_id": "ln-usr-grp-slm-05-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.922Z"
+  },
+  {
+    "id": "bd52c59c-7805-4e58-ac0d-cd2c1641ed80",
+    "user_id": "usr-grp-slm-05-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 8 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.\n\nஉங்கள் ₹607.64 repayment 8 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.",
+    "related_loan_id": "ln-usr-grp-slm-05-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.918Z"
+  },
+  {
+    "id": "76bcab88-8e05-4f07-94d3-ea4b9af54cd9",
+    "user_id": "usr-grp-slm-05-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 15 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.\n\nஉங்கள் ₹607.64 repayment 15 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.",
+    "related_loan_id": "ln-usr-grp-slm-05-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.914Z"
+  },
+  {
+    "id": "2eb5e90f-0d8c-4c26-8a80-ad3d3ab99f2e",
+    "user_id": "usr-grp-slm-05-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 22 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.\n\nஉங்கள் ₹607.64 repayment 22 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.",
+    "related_loan_id": "ln-usr-grp-slm-05-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.911Z"
+  },
+  {
+    "id": "c3597482-5aae-4ae8-a7cf-30a1c87bf6e5",
+    "user_id": "usr-grp-slm-05-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 18 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.\n\nஉங்கள் ₹607.64 repayment 18 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.",
+    "related_loan_id": "ln-usr-grp-slm-05-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.908Z"
+  },
+  {
+    "id": "8040f3e0-858f-42a3-a029-429a2f4ac897",
+    "user_id": "usr-grp-try-04-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 1 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.\n\nஉங்கள் ₹607.64 repayment 1 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.",
+    "related_loan_id": "ln-usr-grp-try-04-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.905Z"
+  },
+  {
+    "id": "6be621d7-b09f-414e-b807-01b708f809dd",
+    "user_id": "usr-grp-try-04-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 8 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.\n\nஉங்கள் ₹607.64 repayment 8 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.",
+    "related_loan_id": "ln-usr-grp-try-04-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.899Z"
+  },
+  {
+    "id": "18ffbf2a-7188-4009-91e8-db192c6d1a39",
+    "user_id": "usr-grp-try-04-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 15 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.\n\nஉங்கள் ₹607.64 repayment 15 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.",
+    "related_loan_id": "ln-usr-grp-try-04-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.897Z"
+  },
+  {
+    "id": "d0220f17-3c1f-4efc-9531-ee4eb2a51f09",
+    "user_id": "usr-grp-try-04-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 22 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.\n\nஉங்கள் ₹607.64 repayment 22 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.",
+    "related_loan_id": "ln-usr-grp-try-04-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.894Z"
+  },
+  {
+    "id": "e4cc4893-0d2c-4454-93b2-a30c8917437e",
+    "user_id": "usr-grp-try-04-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 18 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.\n\nஉங்கள் ₹607.64 repayment 18 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.",
+    "related_loan_id": "ln-usr-grp-try-04-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.889Z"
+  },
+  {
+    "id": "7872e067-f816-45b8-b584-672929738f3b",
+    "user_id": "usr-grp-mdu-03-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 1 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.\n\nஉங்கள் ₹607.64 repayment 1 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.",
+    "related_loan_id": "ln-usr-grp-mdu-03-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.881Z"
+  },
+  {
+    "id": "004f6e25-275d-49ca-b7e1-8e929ecad4ec",
+    "user_id": "usr-grp-mdu-03-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 8 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.\n\nஉங்கள் ₹607.64 repayment 8 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.",
+    "related_loan_id": "ln-usr-grp-mdu-03-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.875Z"
+  },
+  {
+    "id": "fa5483dd-f73a-4795-9367-a4159f7426ff",
+    "user_id": "usr-grp-mdu-03-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 15 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.\n\nஉங்கள் ₹607.64 repayment 15 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.",
+    "related_loan_id": "ln-usr-grp-mdu-03-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.871Z"
+  },
+  {
+    "id": "5c805fda-f4ee-430b-814a-0eeb4378aa32",
+    "user_id": "usr-grp-mdu-03-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 22 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.\n\nஉங்கள் ₹607.64 repayment 22 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.",
+    "related_loan_id": "ln-usr-grp-mdu-03-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.868Z"
+  },
+  {
+    "id": "67285e51-164b-46e6-926f-66ee79fdc49f",
+    "user_id": "usr-grp-mdu-03-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 18 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.\n\nஉங்கள் ₹607.64 repayment 18 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.",
+    "related_loan_id": "ln-usr-grp-mdu-03-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.864Z"
+  },
+  {
+    "id": "1fcfec7f-e41e-46af-a636-cc96a2215fe1",
+    "user_id": "usr-grp-cbe-02-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 1 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.\n\nஉங்கள் ₹607.64 repayment 1 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.",
+    "related_loan_id": "ln-usr-grp-cbe-02-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.860Z"
+  },
+  {
+    "id": "992fc584-a17b-41b4-93c5-ff5976e90edb",
+    "user_id": "usr-grp-cbe-02-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 8 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.\n\nஉங்கள் ₹607.64 repayment 8 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.",
+    "related_loan_id": "ln-usr-grp-cbe-02-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.857Z"
+  },
+  {
+    "id": "1a0bbc4e-9f6f-4e69-84ae-c6d139ae6f55",
+    "user_id": "usr-grp-cbe-02-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 15 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.\n\nஉங்கள் ₹607.64 repayment 15 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.",
+    "related_loan_id": "ln-usr-grp-cbe-02-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.853Z"
+  },
+  {
+    "id": "a13f7597-9b05-4afe-be98-451d9d2b5473",
+    "user_id": "usr-grp-cbe-02-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 22 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.\n\nஉங்கள் ₹607.64 repayment 22 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹1100, Total Outstanding: ₹1707.64.",
+    "related_loan_id": "ln-usr-grp-cbe-02-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.851Z"
+  },
+  {
+    "id": "936a26a6-f525-4c6f-9da2-f85d425b38f8",
+    "user_id": "usr-grp-cbe-02-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 18 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.\n\nஉங்கள் ₹607.64 repayment 18 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹900, Total Outstanding: ₹1507.64.",
+    "related_loan_id": "ln-usr-grp-cbe-02-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.847Z"
+  },
+  {
+    "id": "6a7cae8d-51ad-4fad-9275-a1cfdb7f2288",
+    "user_id": "usr-grp-chn-01-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 1 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.\n\nஉங்கள் ₹607.64 repayment 1 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹50, Total Outstanding: ₹657.64.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.844Z"
+  },
+  {
+    "id": "a25e650f-f7c0-4023-9e3a-bba263050e91",
+    "user_id": "usr-grp-chn-01-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 8 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.\n\nஉங்கள் ₹607.64 repayment 8 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹400, Total Outstanding: ₹1007.64.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.841Z"
+  },
+  {
+    "id": "f1881c8a-e724-467e-8d9c-74687f9a5e5c",
+    "user_id": "usr-grp-chn-01-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.64 repayment is 15 days overdue. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.\n\nஉங்கள் ₹607.64 repayment 15 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.64, Late Penalty: ₹750, Total Outstanding: ₹1357.64.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.837Z"
+  },
+  {
+    "id": "fbec0282-fc30-4ef1-b1d5-4b31dcbe7745",
+    "user_id": "usr-grp-chn-01-m2",
+    "type": "REPAYMENT_OVERDUE",
+    "title": "⚠️ Repayment Overdue / தவணை நிலுவை அறிவிப்பு",
+    "message": "Your ₹607.28 repayment is 22 days overdue. Pending Amount: ₹607.28, Late Penalty: ₹1100, Total Outstanding: ₹1707.28.\n\nஉங்கள் ₹607.28 repayment 22 நாட்கள் overdue ஆக உள்ளது. Pending Amount: ₹607.28, Late Penalty: ₹1100, Total Outstanding: ₹1707.28.",
+    "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
+    "is_read": false,
+    "created_at": "2026-10-28T03:08:08.830Z"
+  },
+  {
     "id": "00a82be0-6eb2-4f8b-86ad-dbd142ffd958",
     "user_id": "usr-admin-grp-chn-01",
     "type": "REPAYMENT_RECORDED",
@@ -16,7 +256,7 @@
     "title": "Repayment Collected",
     "message": "Group Admin Kavitha Murugan recorded payment of ₹608 for member Priya Sundaram. Outstanding balance: ₹3645.51.",
     "related_loan_id": "ln-usr-grp-chn-01-m2-overdue",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:45:51.919Z"
   },
   {
@@ -46,7 +286,7 @@
     "title": "Repayment Collected",
     "message": "Group Admin Kavitha Murugan recorded payment of ₹500 for member Revathi Natarajan. Outstanding balance: ₹4563.68.",
     "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:44:17.952Z"
   },
   {
@@ -66,7 +306,7 @@
     "title": "New Group Member Loan Submitted by Group Admin",
     "message": "Group Admin Kavitha Murugan submitted a ₹5000 loan application for Revathi Natarajan.",
     "related_loan_id": "42da3038-dd1a-426b-a8ca-da53992a3517",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:44:13.609Z"
   },
   {
@@ -86,7 +326,7 @@
     "title": "New Group Member Loan Submitted by Group Admin",
     "message": "Group Admin Kavitha Murugan submitted a ₹5000 loan application for Kavitha Murugan.",
     "related_loan_id": "c734928b-f2ff-43b1-8d29-e3677eb3291d",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:32:29.123Z"
   },
   {
@@ -106,7 +346,7 @@
     "title": "New Group Member Loan Submitted by Group Admin",
     "message": "Group Admin Kavitha Murugan submitted a ₹4000 loan application for Kavitha Murugan.",
     "related_loan_id": "87639b17-4113-468b-b44c-283754477386",
-    "is_read": false,
+    "is_read": true,
     "created_at": "2026-10-27T21:30:02.499Z"
   },
   {

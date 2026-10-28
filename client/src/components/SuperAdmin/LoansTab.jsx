@@ -267,8 +267,16 @@ export default function LoansTab({ onActionComplete }) {
                 {filteredLoans.map(loan => (
                   <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '10px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</span>
+                        {loan.member_role === 'GROUP_ADMIN' && (
+                          <span style={{
+                            fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px',
+                            backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe'
+                          }}>
+                            Group Admin (Direct)
+                          </span>
+                        )}
                         {loan.member_repayment_score !== undefined && (
                           <span style={{
                             fontSize: '0.7rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px',

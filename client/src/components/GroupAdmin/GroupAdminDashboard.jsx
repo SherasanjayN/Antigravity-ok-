@@ -56,6 +56,67 @@ export default function GroupAdminDashboard({ currentUser }) {
   const [submittingRepay, setSubmittingRepay] = useState(false);
   const [repayError, setRepayError] = useState('');
 
+  // Group Admin Own Loan Application Modal
+  const [showApplyLoanModal, setShowApplyLoanModal] = useState(false);
+  const [applyAmount, setApplyAmount] = useState(5000);
+  const [applyPurpose, setApplyPurpose] = useState('');
+  const [applyFrequency, setApplyFrequency] = useState('WEEKLY');
+  const [applyTenure, setApplyTenure] = useState(10);
+  const [applyPaymentMode, setApplyPaymentMode] = useState('UPI');
+  const [applyUpiEmail, setApplyUpiEmail] = useState('');
+  const [applyFirstDueDate, setApplyFirstDueDate] = useState('');
+  const [submittingApplyLoan, setSubmittingApplyLoan] = useState(false);
+  const [applyLoanError, setApplyLoanError] = useState('');
+
+  const handleApplyGroupAdminLoan = async (e) => {
+    e.preventDefault();
+    setApplyLoanError('');
+    const numAmt = Number(applyAmount);
+    if (!applyAmount || isNaN(numAmt) || numAmt <= 0) {
+      setApplyLoanError('Please enter a valid loan amount.');
+      return;
+    }
+    if (numAmt > 10000) {
+      setApplyLoanError('Maximum loan limit is ₹10,000 as per policy.');
+      return;
+    }
+    if (applyPaymentMode === 'UPI') {
+      if (!applyUpiEmail.trim()) {
+        setApplyLoanError('Please enter your registered email ID for UPI verification.');
+        return;
+      }
+      if (applyUpiEmail.trim().toLowerCase() !== currentUser.email.toLowerCase()) {
+        setApplyLoanError(`UPI Verification: Email must match your registered email (${currentUser.email}).`);
+        return;
+      }
+    }
+
+    setSubmittingApplyLoan(true);
+    try {
+      const res = await api.groupAdmin.applyLoan({
+        amount: numAmt,
+        purpose: applyPurpose,
+        repayment_frequency: applyFrequency,
+        tenure_value: applyTenure,
+        payment_mode: applyPaymentMode,
+        upi_email: applyPaymentMode === 'UPI' ? applyUpiEmail.trim() : null,
+        preferred_first_due_date: applyFirstDueDate || null
+      });
+
+      setActionSuccess(res.message || 'Loan request submitted successfully and directly forwarded to Super Admin for approval!');
+      setShowApplyLoanModal(false);
+      setApplyAmount(5000);
+      setApplyPurpose('');
+      setApplyUpiEmail('');
+      await loadData();
+      setTimeout(() => setActionSuccess(''), 6000);
+    } catch (err) {
+      setApplyLoanError(err.message || 'Failed to submit loan application.');
+    } finally {
+      setSubmittingApplyLoan(false);
+    }
+  };
+
   const handleRecordQuickRepayment = async (e) => {
     e.preventDefault();
     setRepayError('');
@@ -247,6 +308,28 @@ export default function GroupAdminDashboard({ currentUser }) {
         </button>
 
         <button
+          onClick={() => setActiveTab('apply-loan')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-sm)', border: 'none',
+            background: activeTab === 'apply-loan' ? '#ecfdf5' : 'transparent',
+            color: activeTab === 'apply-loan' ? '#065f46' : 'var(--text-main)',
+            fontWeight: activeTab === 'apply-loan' ? 700 : 500, cursor: 'pointer', textAlign: 'left'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Plus size={18} color={activeTab === 'apply-loan' ? '#047857' : 'var(--text-muted)'} />
+            <span>{lang === 'ta' ? 'கடன் விண்ணப்பிக்க' : 'Apply Loan'}</span>
+          </div>
+          <span style={{
+            backgroundColor: '#047857', color: '#ffffff', fontSize: '0.68rem',
+            fontWeight: 800, padding: '2px 6px', borderRadius: '4px'
+          }}>
+            Admin
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('analytics')}
           style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
@@ -389,7 +472,17 @@ export default function GroupAdminDashboard({ currentUser }) {
                       {loans.map(loan => (
                         <tr key={loan.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '10px 14px' }}>
-                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, color: '#0f172a' }}>{loan.member_name}</span>
+                              {loan.user_id === currentUser.id && (
+                                <span style={{
+                                  fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px',
+                                  backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe'
+                                }}>
+                                  You (Admin)
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                               {loan.member_repayment_score !== undefined && (
                                 <span style={{
@@ -923,6 +1016,330 @@ export default function GroupAdminDashboard({ currentUser }) {
                       );
                     })()}
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: APPLY LOAN (GROUP ADMIN DIRECT TO SUPER ADMIN) */}
+        {activeTab === 'apply-loan' && (
+          <div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <IndianRupee size={24} />
+                <span>{lang === 'ta' ? 'குழு தலைவர் கடன் விண்ணப்பம்' : 'Group Admin Loan Portal'}</span>
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                {lang === 'ta'
+                  ? 'குழு தலைவருக்கான பிரத்யேக கடன் விண்ணப்பம். இது நேரடியாக முதன்மை நிர்வாகியால் (Super Admin) சரிபார்க்கப்பட்டு அங்கீகரிக்கப்படும்.'
+                  : 'Direct Super Admin review channel. Applications bypass regular member group review and are sent straight to Super Admin for sanction.'}
+              </p>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '1.5rem',
+              alignItems: 'start'
+            }}>
+              {/* Application Form Card */}
+              <div className="card" style={{ padding: '1.75rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  paddingBottom: '1rem', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9'
+                }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '10px',
+                    backgroundColor: '#ecfdf5', color: '#047857',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800
+                  }}>
+                    ₹
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                      {lang === 'ta' ? 'புதிய கடன் படிவம்' : 'Submit Loan Application'}
+                    </h3>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      Applicant: <strong>{currentUser.name}</strong> (Group Admin)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  backgroundColor: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  color: '#1e40af',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  marginBottom: '1.25rem',
+                  lineHeight: 1.5
+                }}>
+                  ⭐ <strong>Direct Super Admin Approval:</strong> As Group Admin, your request is submitted directly to the <strong>Super Admin</strong> queue for final sanction and disbarment without needing committee review.
+                </div>
+
+                {applyLoanError && (
+                  <div style={{
+                    backgroundColor: '#fee2e2', color: '#dc2626', padding: '0.85rem 1rem',
+                    borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1.25rem',
+                    border: '1px solid #fca5a5', fontWeight: 600
+                  }}>
+                    {applyLoanError}
+                  </div>
+                )}
+
+                <form onSubmit={handleApplyGroupAdminLoan} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                      {t('loan_amount_label')} (₹1,000 - ₹10,000) *
+                    </label>
+                    <input
+                      type="number"
+                      min="1000"
+                      max="10000"
+                      step="500"
+                      value={applyAmount}
+                      onChange={(e) => setApplyAmount(e.target.value)}
+                      required
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', borderRadius: '8px',
+                        border: '1.5px solid var(--border-color)', fontSize: '1.15rem', fontWeight: 800, color: '#047857'
+                      }}
+                    />
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
+                      Capped at ₹10,000 per Magalir Kuzhu policy.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                      {t('purpose_label')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={applyPurpose}
+                      onChange={(e) => setApplyPurpose(e.target.value)}
+                      required
+                      placeholder="e.g. Small business working capital, inventory, or livestock"
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', borderRadius: '8px',
+                        border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                        {t('frequency_label')}
+                      </label>
+                      <select
+                        value={applyFrequency}
+                        onChange={(e) => {
+                          setApplyFrequency(e.target.value);
+                          setApplyTenure(e.target.value === 'WEEKLY' ? 10 : 6);
+                        }}
+                        style={{
+                          width: '100%', padding: '0.75rem 0.85rem', borderRadius: '8px',
+                          border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                        }}
+                      >
+                        <option value="WEEKLY">{t('freq_weekly')}</option>
+                        <option value="MONTHLY">{t('freq_monthly')}</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                        {t('tenure_label')}
+                      </label>
+                      <select
+                        value={applyTenure}
+                        onChange={(e) => setApplyTenure(Number(e.target.value))}
+                        style={{
+                          width: '100%', padding: '0.75rem 0.85rem', borderRadius: '8px',
+                          border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                        }}
+                      >
+                        {applyFrequency === 'WEEKLY' ? (
+                          <>
+                            <option value={8}>8 Weeks</option>
+                            <option value={10}>10 Weeks (Standard)</option>
+                            <option value={12}>12 Weeks</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value={3}>3 Months</option>
+                            <option value={6}>6 Months (Standard)</option>
+                            <option value={12}>12 Months</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                      {t('payment_mode_label')} *
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setApplyPaymentMode('UPI')}
+                        style={{
+                          flex: 1, padding: '0.75rem', borderRadius: '8px',
+                          border: applyPaymentMode === 'UPI' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                          backgroundColor: applyPaymentMode === 'UPI' ? '#ecfdf5' : '#ffffff',
+                          color: applyPaymentMode === 'UPI' ? '#047857' : 'var(--text-main)',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        📱 {t('mode_upi')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setApplyPaymentMode('CASH')}
+                        style={{
+                          flex: 1, padding: '0.75rem', borderRadius: '8px',
+                          border: applyPaymentMode === 'CASH' ? '2px solid #047857' : '1.5px solid var(--border-color)',
+                          backgroundColor: applyPaymentMode === 'CASH' ? '#ecfdf5' : '#ffffff',
+                          color: applyPaymentMode === 'CASH' ? '#047857' : 'var(--text-main)',
+                          fontWeight: 700, cursor: 'pointer'
+                        }}
+                      >
+                        💵 {t('mode_cash')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {applyPaymentMode === 'UPI' && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                        {t('upi_email_verify')} *
+                      </label>
+                      <input
+                        type="email"
+                        value={applyUpiEmail}
+                        onChange={(e) => setApplyUpiEmail(e.target.value)}
+                        placeholder={currentUser.email}
+                        required
+                        style={{
+                          width: '100%', padding: '0.75rem 1rem', borderRadius: '8px',
+                          border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                        }}
+                      />
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
+                        Must match your registered email: <strong>{currentUser.email}</strong>
+                      </span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+                      {t('first_due_date_label')} (Optional)
+                    </label>
+                    <input
+                      type="date"
+                      value={applyFirstDueDate}
+                      onChange={(e) => setApplyFirstDueDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      style={{
+                        width: '100%', padding: '0.75rem 1rem', borderRadius: '8px',
+                        border: '1.5px solid var(--border-color)', fontSize: '0.9rem'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <button
+                      type="submit"
+                      disabled={submittingApplyLoan}
+                      className="btn btn-primary"
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#047857',
+                        fontWeight: 800,
+                        padding: '0.85rem',
+                        fontSize: '1rem',
+                        borderRadius: '8px'
+                      }}
+                    >
+                      {submittingApplyLoan ? 'Submitting to Super Admin...' : 'Submit Loan Application Directly to Super Admin'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Status / History of Group Admin's Own Loans */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div className="card" style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: '#ffffff' }}>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '1rem', color: '#0f172a' }}>
+                    {lang === 'ta' ? 'எனது கடன் விண்ணப்பங்கள்' : 'My Direct Loan Status'}
+                  </h3>
+
+                  {loans.filter(l => l.user_id === currentUser.id).length === 0 ? (
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      You haven't submitted any loans yet. Fill the form to request a loan directly approved by Super Admin.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {loans.filter(l => l.user_id === currentUser.id).map(myLoan => (
+                        <div key={myLoan.id} style={{
+                          padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0',
+                          backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem'
+                        }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#047857' }}>₹{myLoan.amount}</span>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                ({myLoan.repayment_frequency || 'WEEKLY'})
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
+                              {myLoan.purpose || 'Self-Help Enterprise'}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              Account: <strong>{myLoan.loan_account_number || myLoan.application_id || myLoan.id.slice(0, 8)}</strong>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+                            <StatusBadge status={myLoan.status} type="loan" />
+                            {(myLoan.status === 'DISBURSED' || myLoan.status === 'COMPLETED') && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedLedgerLoanId(myLoan.id)}
+                                style={{
+                                  padding: '3px 8px', borderRadius: '4px', border: '1px solid #047857',
+                                  backgroundColor: '#ecfdf5', color: '#065f46',
+                                  fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
+                                }}
+                              >
+                                View Ledger
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="card" style={{
+                  padding: '1.25rem', borderRadius: '12px', border: '1px solid #bbf7d0',
+                  backgroundColor: '#f0fdf4', fontSize: '0.85rem', color: '#166534', lineHeight: 1.5
+                }}>
+                  <div style={{ fontWeight: 800, marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <CheckCircle2 size={16} color="#166534" />
+                    <span>How Group Admin Loans Work</span>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <li>Requests are directly delivered to the <strong>Super Admin Console</strong>.</li>
+                    <li>No preliminary group self-review needed; avoids conflict of interest.</li>
+                    <li>Disbursal, repayments, and schedules follow standard 12% reducing-balance policy.</li>
+                  </ul>
                 </div>
               </div>
             </div>
